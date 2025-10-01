@@ -133,6 +133,14 @@
 }
 
 @layer base {
+    :root {
+        --font-scale: 1;
+    }
+
+    html {
+        font-size: calc(16px * var(--font-scale));
+    }
+
     * {
         @apply border-border;
     }
@@ -140,4 +148,9 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    body.contrast-hc {
+        filter: contrast(1.15) saturate(1.1);
+    }
 }
+

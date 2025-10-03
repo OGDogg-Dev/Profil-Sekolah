@@ -1,11 +1,6 @@
-import React from 'react';
-import { Head } from '@inertiajs/react';
-import A11yToolbar from '@/components/layout/A11yToolbar';
-import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/Navbar';
+import { Head, usePage } from '@inertiajs/react';
+import AppShell from '@/layouts/AppShell';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import Section from '@/components/ui/Section';
-import Card from '@/components/ui/card';
 import ProgramGrid from '@/components/vocational/ProgramGrid';
 import type { VocationalProgram } from '@/features/vocational/types';
 
@@ -13,30 +8,43 @@ interface VocationalIndexProps {
     items: VocationalProgram[];
 }
 
+type PageProps = {
+    settings?: {
+        site_name?: string;
+    };
+};
+
 export default function VocationalIndex({ items }: VocationalIndexProps) {
-    const siteName = 'Vokasional Disabilitas';
+    const { props } = usePage<PageProps>();
+    const siteName = props?.settings?.site_name ?? 'SMK Negeri 10 Kuningan';
+
+    // Map photos array to media array for each vocational program
+    const itemsWithMedia = items.map((item) => ({
+        ...item,
+        media: item.photos?.map((photo, index) => ({
+            id: index + 1, // Using index as id
+            type: 'image' as const,
+            url: photo.startsWith('http') ? photo : `/storage/${photo}`,
+            alt: item.title,
+        })) ?? [],
+    }));
 
     return (
-        <div className="min-h-screen bg-white text-slate-900">
+        <AppShell siteName={siteName}>
             <Head title={`Program Vokasional - ${siteName}`} />
-            <A11yToolbar />
-            <Navbar schoolName={siteName} activeId="vokasional" />
-            <main id="main-content" className="space-y-12">
-                <Section id="vokasional" className="space-y-8">
+
+            <section className="bg-white">
+                <div className="mx-auto w-full max-w-6xl px-4 py-10">
                     <Breadcrumbs items={[{ label: 'Vokasional', href: '/vokasional' }]} />
-                    <header className="space-y-3">
-                        <h1 className="text-3xl font-bold text-slate-900">Program Vokasional</h1>
-                        <p className="text-slate-600">
-                            Pilihan program yang dirancang bersama industri dan komunitas untuk membuka peluang kerja dan wirausaha bagi penyandang disabilitas.
-                        </p>
+                    <header className="mt-4 border-b-4 border-[#1b57d6] pb-3">
+                        <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-[#1b57d6]">SMK Negeri 10 Kuningan</h1>
+                        <p className="mt-2 text-sm text-slate-600">Where Tomorrow's Leaders Come Together</p>
                     </header>
-                    <Card className="border-dashed bg-slate-50/60 p-6 text-sm text-slate-600">
-                        Setiap program menyediakan asesor kompetensi, mentor profesional, serta fasilitas adaptif. Silakan pilih program untuk melihat kurikulum, fasilitas, dan dokumentasi kegiatan.
-                    </Card>
-                    <ProgramGrid items={items} />
-                </Section>
-            </main>
-            <Footer siteName={siteName} />
-        </div>
+                    <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <ProgramGrid items={itemsWithMedia} />
+                    </div>
+                </div>
+            </section>
+        </AppShell>
     );
 }

@@ -1,10 +1,6 @@
-import React from 'react';
-import { Head } from '@inertiajs/react';
-import A11yToolbar from '@/components/layout/A11yToolbar';
-import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/Navbar';
+import { Head, usePage } from '@inertiajs/react';
+import AppShell from '@/layouts/AppShell';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import Section from '@/components/ui/Section';
 import type { Crumb } from '@/components/ui/Breadcrumbs';
 
 type PageData = {
@@ -13,31 +9,36 @@ type PageData = {
     slug?: string;
 };
 
+type PageProps = {
+    settings?: {
+        site_name?: string;
+    };
+};
+
 export default function Profile({ page }: { page: PageData | null }) {
+    const { props } = usePage<PageProps>();
+    const siteName = props?.settings?.site_name ?? 'SMK Negeri 10 Kuningan';
     const title = page?.title ?? 'Profil Sekolah';
     const content = page?.content ?? '<p>Konten profil belum tersedia.</p>';
-    const siteName = 'Vokasional Disabilitas';
 
-    const breadcrumbs: Crumb[] = [
-        { label: 'Profil', href: '/profil' },
-    ];
+    const breadcrumbs: Crumb[] = [{ label: 'Profil', href: '/profil' }];
 
     return (
-        <div className="min-h-screen bg-white text-slate-900">
+        <AppShell siteName={siteName}>
             <Head title={`${title} - ${siteName}`} />
-            <A11yToolbar />
-            <Navbar schoolName={siteName} activeId="profil" />
-            <main id="main-content">
-                <Section id="profil" className="space-y-8">
+
+            <section className="bg-white">
+                <div className="mx-auto w-full max-w-6xl px-4 py-10">
                     <Breadcrumbs items={breadcrumbs} />
-                    <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
+                    <header className="mt-4 border-b-4 border-[#1b57d6] pb-3">
+                        <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-[#1b57d6]">{title}</h1>
+                    </header>
                     <article
-                        className="prose max-w-none text-slate-700"
+                        className="prose mt-6 max-w-none rounded-3xl border border-slate-200 bg-white p-6 text-slate-700 shadow-sm"
                         dangerouslySetInnerHTML={{ __html: content }}
                     />
-                </Section>
-            </main>
-            <Footer siteName={siteName} />
-        </div>
+                </div>
+            </section>
+        </AppShell>
     );
 }

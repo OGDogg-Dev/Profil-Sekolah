@@ -1,54 +1,28 @@
-import React from 'react';
-import Card from '@/components/ui/card';
-import Pill from '@/components/ui/Pill';
+import NewsCard from '@/components/NewsCard';
 import type { PostSummary } from '@/features/content/types';
 
 export default function PostList({ items }: { items: PostSummary[] }) {
     if (!items.length) {
-        return <p className="text-sm text-slate-500">Belum ada berita.</p>;
+        return (
+            <p className="rounded-2xl border border-dashed border-slate-200/70 bg-white/70 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+                Belum ada berita.
+            </p>
+        );
     }
 
     return (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {items.map((post) => (
-                <Card key={post.slug} className="overflow-hidden">
-                    {post.cover_url ? (
-                        <a href={`/berita/${post.slug}`}>
-                            <img
-                                src={post.cover_url}
-                                alt={post.title}
-                                className="h-40 w-full object-cover"
-                                loading="lazy"
-                            />
-                        </a>
-                    ) : null}
-                    <div className="space-y-3 p-5">
-                        {post.published_at ? (
-                            <p className="text-xs uppercase tracking-wide text-slate-500">
-                                {new Date(post.published_at).toLocaleDateString('id-ID', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                    year: 'numeric',
-                                })}
-                            </p>
-                        ) : null}
-                        <a
-                            href={`/berita/${post.slug}`}
-                            className="text-base font-semibold text-slate-900 hover:underline"
-                        >
-                            {post.title}
-                        </a>
-                        {post.excerpt ? (
-                            <p className="text-sm text-slate-600 line-clamp-3">{post.excerpt}</p>
-                        ) : null}
-                        <a
-                            href={`/berita/${post.slug}`}
-                            className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:underline"
-                        >
-                            Baca selengkapnya <span aria-hidden>?</span>
-                        </a>
-                    </div>
-                </Card>
+                <NewsCard
+                    key={post.slug}
+                    data={{
+                        slug: post.slug,
+                        title: post.title,
+                        cover: post.cover_url ?? undefined,
+                        date: post.published_at ?? post.created_at ?? new Date().toISOString(),
+                        excerpt: post.excerpt,
+                    }}
+                />
             ))}
         </div>
     );

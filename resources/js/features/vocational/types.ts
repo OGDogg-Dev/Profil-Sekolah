@@ -22,5 +22,6 @@ export type VocationalProgram = {
     outcomes?: string[] | null;
     facilities?: string[] | null;
     mentors?: string[] | null;
+    photos?: string[] | null;
     media?: MediaItem[];
 };

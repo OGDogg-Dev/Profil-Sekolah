@@ -41,21 +41,21 @@ export default function PostsIndex({ posts, filters }: IndexProps) {
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Cari judul berita..."
-                        className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-slate-500"
                     />
-                    <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Cari</button>
+                    <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600">Cari</button>
                 </form>
                 <a
                     href="/admin/posts/create"
-                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
                 >
                     Tambah Berita
                 </a>
             </div>
-            <div className="overflow-hidden rounded-2xl border bg-white">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
                 <table className="w-full text-sm">
-                    <thead className="bg-slate-50">
-                        <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
+                    <thead className="bg-slate-50 dark:bg-slate-700">
+                        <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">
                             <th className="px-4 py-3">Judul</th>
                             <th className="px-4 py-3">Status</th>
                             <th className="px-4 py-3">Dipublikasikan</th>
@@ -64,20 +64,20 @@ export default function PostsIndex({ posts, filters }: IndexProps) {
                     </thead>
                     <tbody>
                         {posts.data.map((post) => (
-                            <tr key={post.id} className="border-t border-slate-100 hover:bg-slate-50">
-                                <td className="px-4 py-3 font-medium text-slate-800">{post.title}</td>
+                            <tr key={post.id} className="border-t border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700">
+                                <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-300">{post.title}</td>
                                 <td className="px-4 py-3">
                                     <span
                                         className={`rounded-lg px-2 py-1 text-xs font-semibold ${
                                             post.status === 'published'
-                                                ? 'bg-emerald-50 text-emerald-700'
-                                                : 'bg-slate-100 text-slate-600'
+                                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
+                                                : 'bg-slate-100 text-slate-600 dark:bg-slate-600 dark:text-slate-400'
                                         }`}
                                     >
                                         {post.status === 'published' ? 'Published' : 'Draft'}
                                     </span>
                                 </td>
-                                <td className="px-4 py-3 text-slate-500">
+                                <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
                                     {post.published_at
                                         ? new Date(post.published_at).toLocaleDateString('id-ID', {
                                               day: '2-digit',
@@ -90,14 +90,14 @@ export default function PostsIndex({ posts, filters }: IndexProps) {
                                     <div className="inline-flex items-center gap-2">
                                         <a
                                             href={`/admin/posts/${post.id}/edit`}
-                                            className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold hover:bg-slate-100"
+                                            className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
                                         >
                                             Edit
                                         </a>
                                         <button
                                             type="button"
                                             onClick={() => handleDelete(post.id)}
-                                            className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                            className="rounded-lg border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-700 dark:bg-slate-800 dark:text-rose-400 dark:hover:bg-rose-900"
                                         >
                                             Hapus
                                         </button>

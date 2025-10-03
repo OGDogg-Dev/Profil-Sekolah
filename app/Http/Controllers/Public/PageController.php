@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
+use App\Models\SiteSetting;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,15 +13,18 @@ class PageController extends Controller
 {
     public function showProfile(): Response
     {
+        $settings = SiteSetting::first();
         $page = Page::where('slug', 'profil')->first();
 
         return Inertia::render('public/Profile', [
+            'settings' => $settings,
             'page' => $page,
         ]);
     }
 
     public function showVisionMission(): Response
     {
+        $settings = SiteSetting::first();
         $page = Page::where('slug', 'visi-misi')->first();
 
         $vision = null;
@@ -43,6 +47,7 @@ class PageController extends Controller
         }
 
         return Inertia::render('public/VisionMission', [
+            'settings' => $settings,
             'page' => $page,
             'vision' => $vision,
             'missions' => $missions,

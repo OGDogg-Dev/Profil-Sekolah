@@ -25,10 +25,21 @@ class SettingController extends Controller
         $data = $request->validate([
             'site_name' => ['required', 'string', 'max:255'],
             'tagline' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'fax' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'string', 'max:255'],
             'logo_path' => ['nullable', 'string', 'max:255'],
+            'logo' => ['nullable', 'image', 'max:2048'],
         ]);
 
         $settings = SiteSetting::first() ?? new SiteSetting();
+
+        if ($request->hasFile('logo')) {
+            $path = $request->file('logo')->store('logos', 'public');
+            $data['logo_path'] = $path;
+        }
+
         $settings->fill($data)->save();
 
         return back()->with('success', 'Pengaturan disimpan');

@@ -37,14 +37,14 @@ export default function EventsIndex({ events }: IndexProps) {
             <div className="flex justify-end">
                 <a
                     href="/admin/events/create"
-                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
                 >
                     Tambah Agenda
                 </a>
             </div>
-            <div className="overflow-hidden rounded-2xl border bg-white">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
                 <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-700 dark:text-slate-300">
                         <tr>
                             <th className="px-4 py-3">Judul</th>
                             <th className="px-4 py-3">Mulai</th>
@@ -55,23 +55,23 @@ export default function EventsIndex({ events }: IndexProps) {
                     </thead>
                     <tbody>
                         {events.data.map((event) => (
-                            <tr key={event.id} className="border-t border-slate-100 hover:bg-slate-50">
-                                <td className="px-4 py-3 font-medium text-slate-800">{event.title}</td>
-                                <td className="px-4 py-3 text-slate-600">{formatDate(event.start_at)}</td>
-                                <td className="px-4 py-3 text-slate-600">{event.end_at ? formatDate(event.end_at) : '-'}</td>
-                                <td className="px-4 py-3 text-slate-600">{event.location ?? '-'}</td>
+                            <tr key={event.id} className="border-t border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700">
+                                <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-300">{event.title}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(event.start_at)}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{event.end_at ? formatDate(event.end_at) : '-'}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{event.location ?? '-'}</td>
                                 <td className="px-4 py-3 text-right">
                                     <div className="inline-flex items-center gap-2">
                                         <a
                                             href={`/admin/events/${event.id}/edit`}
-                                            className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold hover:bg-slate-100"
+                                            className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
                                         >
                                             Edit
                                         </a>
                                         <button
                                             type="button"
                                             onClick={() => handleDelete(event.id)}
-                                            className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                            className="rounded-lg border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-700 dark:bg-slate-800 dark:text-rose-400 dark:hover:bg-rose-900"
                                         >
                                             Hapus
                                         </button>

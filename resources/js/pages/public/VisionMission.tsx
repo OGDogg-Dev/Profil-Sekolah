@@ -1,11 +1,6 @@
-import React from 'react';
-import { Head } from '@inertiajs/react';
-import A11yToolbar from '@/components/layout/A11yToolbar';
-import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/Navbar';
+import { Head, usePage } from '@inertiajs/react';
+import AppShell from '@/layouts/AppShell';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import Section from '@/components/ui/Section';
-import Card from '@/components/ui/card';
 
 interface VisionMissionProps {
     page: {
@@ -16,50 +11,55 @@ interface VisionMissionProps {
     missions?: string[];
 }
 
+type PageProps = {
+    settings?: {
+        site_name?: string;
+    };
+};
+
 export default function VisionMission({ page, vision, missions = [] }: VisionMissionProps) {
+    const { props } = usePage<PageProps>();
+    const siteName = props?.settings?.site_name ?? 'SMK Negeri 10 Kuningan';
     const title = page?.title ?? 'Visi & Misi';
-    const siteName = 'Vokasional Disabilitas';
 
     return (
-        <div className="min-h-screen bg-white text-slate-900">
+        <AppShell siteName={siteName}>
             <Head title={`${title} - ${siteName}`} />
-            <A11yToolbar />
-            <Navbar schoolName={siteName} activeId="visi-misi" />
-            <main id="main-content">
-                <Section id="visi-misi" className="space-y-10">
+
+            <section className="bg-white">
+                <div className="mx-auto w-full max-w-6xl px-4 py-10">
                     <Breadcrumbs items={[{ label: 'Visi & Misi', href: '/visi-misi' }]} />
-                    <header className="space-y-3">
-                        <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
-                        <p className="text-slate-600">
+                    <header className="mt-4 border-b-4 border-[#1b57d6] pb-3">
+                        <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-[#1b57d6]">{title}</h1>
+                        <p className="mt-2 text-sm text-slate-600">
                             Menjadi pusat vokasional inklusif yang memberdayakan peserta didik dengan berbagai kebutuhan khusus.
                         </p>
                     </header>
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        <Card className="space-y-3 border-emerald-100 bg-emerald-50 p-6">
-                            <h2 className="text-xl font-semibold text-emerald-900">Visi</h2>
-                            <p className="text-slate-700">{vision ?? 'Visi belum tersedia.'}</p>
-                        </Card>
-                        <Card className="space-y-4 p-6">
-                            <h2 className="text-xl font-semibold text-slate-900">Misi</h2>
+                    <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                        <div className="rounded-3xl border border-[#1b57d6]/30 bg-[#1b57d6]/5 p-6 shadow-sm">
+                            <h2 className="text-lg font-semibold text-[#1b57d6]">Visi</h2>
+                            <p className="mt-3 leading-relaxed text-slate-700">{vision ?? 'Visi belum tersedia.'}</p>
+                        </div>
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h2 className="text-lg font-semibold text-[#1b57d6]">Misi</h2>
                             {missions.length ? (
-                                <ol className="space-y-2 text-slate-700">
+                                <ol className="mt-3 space-y-3 text-slate-700">
                                     {missions.map((mission, index) => (
                                         <li key={index} className="flex gap-3">
-                                            <span className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                                            <span className="mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#1b57d6] text-xs font-semibold text-white">
                                                 {index + 1}
                                             </span>
-                                            <span>{mission}</span>
+                                            <span className="leading-relaxed">{mission}</span>
                                         </li>
                                     ))}
                                 </ol>
                             ) : (
-                                <p className="text-sm text-slate-500">Misi belum tersedia.</p>
+                                <p className="mt-3 text-sm text-slate-500">Misi belum tersedia.</p>
                             )}
-                        </Card>
+                        </div>
                     </div>
-                </Section>
-            </main>
-            <Footer siteName={siteName} />
-        </div>
+                </div>
+            </section>
+        </AppShell>
     );
 }

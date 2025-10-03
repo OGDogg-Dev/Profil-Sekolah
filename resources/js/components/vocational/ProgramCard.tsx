@@ -12,6 +12,20 @@ export default function ProgramCard({ program }: { program: VocationalProgram })
                     <p className="mt-2 line-clamp-3 text-sm text-slate-600">{program.description}</p>
                 )}
             </div>
+            {program.media && program.media.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                    {program.media.map((mediaItem) => (
+                        mediaItem.type === 'image' ? (
+                            <img
+                                key={mediaItem.id}
+                                src={mediaItem.url}
+                                alt={mediaItem.alt ?? 'Media image'}
+                                className="rounded-md object-cover w-full h-24"
+                            />
+                        ) : null
+                    ))}
+                </div>
+            )}
             <div className="flex flex-wrap gap-2 text-xs text-slate-500">
                 {program.duration ? <Pill>Durasi: {program.duration}</Pill> : null}
                 {program.schedule ? <Pill>Jadwal: {program.schedule}</Pill> : null}

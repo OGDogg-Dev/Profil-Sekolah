@@ -1,11 +1,7 @@
-import React from 'react';
-import { Head } from '@inertiajs/react';
-import A11yToolbar from '@/components/layout/A11yToolbar';
-import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/Navbar';
+import { useEffect, useState } from 'react';
+import { Head, usePage } from '@inertiajs/react';
+import AppShell from '@/layouts/AppShell';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import Section from '@/components/ui/Section';
-import Card from '@/components/ui/card';
 import type { PostSummary } from '@/features/content/types';
 
 type PostDetail = PostSummary & {
@@ -21,10 +17,38 @@ interface NewsDetailProps {
     }>;
 }
 
+type PageProps = {
+    settings?: {
+        site_name?: string;
+    };
+};
+
 export default function NewsDetail({ post, related }: NewsDetailProps) {
-    const siteName = 'Vokasional Disabilitas';
+    const { props } = usePage<PageProps>();
+    const siteName = props?.settings?.site_name ?? 'SMK Negeri 10 Kuningan';
     const description = post.excerpt ?? post.title;
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://example.com/berita/${post.slug}`;
+    const [shareUrl, setShareUrl] = useState('');
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        setShareUrl(window.location.href);
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            const total = scrollHeight - clientHeight;
+            const value = total > 0 ? (scrollTop / total) * 100 : 0;
+            setProgress(Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0);
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll();
+
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const articleJsonLd = {
         '@context': 'https://schema.org',
@@ -35,79 +59,88 @@ export default function NewsDetail({ post, related }: NewsDetailProps) {
         image: post.cover_url ? [post.cover_url] : undefined,
     };
 
+    const shareLinks = shareUrl
+        ? [
+              {
+                  label: 'Facebook',
+                  href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+              },
+              {
+                  label: 'X / Twitter',
+                  href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.title)}`,
+              },
+              {
+                  label: 'WhatsApp',
+                  href: `https://api.whatsapp.com/send?text=${encodeURIComponent(post.title + ' ' + shareUrl)}`,
+              },
+          ]
+        : [];
+
     return (
-        <div className="min-h-screen bg-white text-slate-900">
+        <AppShell siteName={siteName}>
             <Head title={`${post.title} - ${siteName}`}>
                 <meta name="description" content={description} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
             </Head>
-            <A11yToolbar />
-            <Navbar schoolName={siteName} activeId="berita" />
-            <main id="main-content" className="space-y-12">
-                <Section id="berita-detail" className="space-y-8">
+
+            <div className="fixed inset-x-0 top-0 z-50 h-1 bg-[#1b57d6]/20">
+                <div className="h-full bg-[#1b57d6] transition-[width] duration-200" style={{ width: `${progress}%` }} />
+            </div>
+
+            <section className="bg-white">
+                <div className="mx-auto w-full max-w-6xl px-4 py-10">
                     <Breadcrumbs
                         items={[
                             { label: 'Berita', href: '/berita' },
                             { label: post.title },
                         ]}
                     />
-                    <article className="space-y-6">
-                        <header className="space-y-3">
-                            <h1 className="text-3xl font-bold leading-tight text-slate-900">{post.title}</h1>
-                            {post.published_at ? (
-                                <p className="text-sm text-slate-500">
-                                    Dipublikasikan{' '}
-                                    {new Date(post.published_at).toLocaleDateString('id-ID', {
-                                        day: '2-digit',
-                                        month: 'long',
-                                        year: 'numeric',
-                                    })}
-                                </p>
-                            ) : null}
-                        </header>
+                    <header className="mt-4 border-b-4 border-[#1b57d6] pb-3">
+                        <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-[#1b57d6]">{post.title}</h1>
+                        {post.published_at ? (
+                            <p className="mt-1 text-xs text-slate-500">
+                                Dipublikasikan {new Date(post.published_at).toLocaleDateString('id-ID', {
+                                    day: '2-digit',
+                                    month: 'long',
+                                    year: 'numeric',
+                                })}
+                            </p>
+                        ) : null}
+                    </header>
+                    <article className="mt-6 space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         {post.cover_url ? (
-                            <img src={post.cover_url} alt={post.title} className="w-full rounded-2xl object-cover" />
+                            <img src={post.cover_url} alt={post.title} className="w-full rounded-xl border border-slate-200 object-cover" />
                         ) : null}
                         <div
                             className="prose max-w-none text-slate-700"
                             dangerouslySetInnerHTML={{ __html: post.content ?? '' }}
                         />
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                            <span>Bagikan:</span>
-                            <a
-                                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
-                                className="rounded-lg px-3 py-1 hover:bg-slate-100"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                Facebook
-                            </a>
-                            <a
-                                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.title)}`}
-                                className="rounded-lg px-3 py-1 hover:bg-slate-100"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                X / Twitter
-                            </a>
-                            <a
-                                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(post.title + ' ' + shareUrl)}`}
-                                className="rounded-lg px-3 py-1 hover:bg-slate-100"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                WhatsApp
-                            </a>
-                        </div>
+                        {shareLinks.length ? (
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <span>Bagikan:</span>
+                                {shareLinks.map((link) => (
+                                    <a
+                                        key={link.href}
+                                        href={link.href}
+                                        className="rounded-full border border-slate-200 px-3 py-1 transition hover:border-[#1b57d6] hover:text-[#1b57d6]"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {link.label}
+                                    </a>
+                                ))}
+                            </div>
+                        ) : null}
                     </article>
+
                     {related.length ? (
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-semibold text-slate-900">Berita Lainnya</h2>
-                            <div className="grid gap-3 md:grid-cols-3">
+                        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h2 className="text-lg font-semibold uppercase tracking-[0.2em] text-[#1b57d6]">Berita Lainnya</h2>
+                            <div className="mt-4 grid gap-4 md:grid-cols-3">
                                 {related.map((item) => (
-                                    <Card key={item.slug} className="p-4">
+                                    <div key={item.slug} className="space-y-2 rounded-xl border border-slate-200 p-4">
                                         {item.published_at ? (
-                                            <p className="text-xs uppercase tracking-wide text-slate-500">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                                                 {new Date(item.published_at).toLocaleDateString('id-ID', {
                                                     day: '2-digit',
                                                     month: 'short',
@@ -115,20 +148,16 @@ export default function NewsDetail({ post, related }: NewsDetailProps) {
                                                 })}
                                             </p>
                                         ) : null}
-                                        <a
-                                            href={`/berita/${item.slug}`}
-                                            className="mt-2 block text-sm font-semibold text-slate-900 hover:underline"
-                                        >
+                                        <a href={`/berita/${item.slug}`} className="text-sm font-semibold text-[#1b57d6]">
                                             {item.title}
                                         </a>
-                                    </Card>
+                                    </div>
                                 ))}
                             </div>
                         </div>
                     ) : null}
-                </Section>
-            </main>
-            <Footer siteName={siteName} />
-        </div>
+                </div>
+            </section>
+        </AppShell>
     );
 }

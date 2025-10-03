@@ -32,8 +32,8 @@ export default function ContactsIndex({ items, filters }: ContactsIndexProps) {
                     onClick={() => setFilter('all')}
                     className={`rounded-xl px-3 py-1 text-sm font-semibold ${
                         filters.status === 'all'
-                            ? 'bg-slate-900 text-white'
-                            : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
+                            ? 'bg-slate-900 text-white dark:bg-slate-700'
+                            : 'border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700'
                     }`}
                 >
                     Semua
@@ -43,8 +43,8 @@ export default function ContactsIndex({ items, filters }: ContactsIndexProps) {
                     onClick={() => setFilter('unread')}
                     className={`rounded-xl px-3 py-1 text-sm font-semibold ${
                         filters.status === 'unread'
-                            ? 'bg-slate-900 text-white'
-                            : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
+                            ? 'bg-slate-900 text-white dark:bg-slate-700'
+                            : 'border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700'
                     }`}
                 >
                     Belum Dibaca
@@ -54,16 +54,16 @@ export default function ContactsIndex({ items, filters }: ContactsIndexProps) {
                     onClick={() => setFilter('read')}
                     className={`rounded-xl px-3 py-1 text-sm font-semibold ${
                         filters.status === 'read'
-                            ? 'bg-slate-900 text-white'
-                            : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
+                            ? 'bg-slate-900 text-white dark:bg-slate-700'
+                            : 'border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700'
                     }`}
                 >
                     Sudah Dibaca
                 </button>
             </div>
-            <div className="overflow-hidden rounded-2xl border bg-white">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
                 <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-700 dark:text-slate-300">
                         <tr>
                             <th className="px-4 py-3">Nama</th>
                             <th className="px-4 py-3">Email</th>
@@ -73,23 +73,23 @@ export default function ContactsIndex({ items, filters }: ContactsIndexProps) {
                     </thead>
                     <tbody>
                         {items.data.map((item) => (
-                            <tr key={item.id} className="border-t border-slate-100 hover:bg-slate-50">
+                            <tr key={item.id} className="border-t border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700">
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-2">
                                         {!item.is_read ? (
                                             <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
                                         ) : (
-                                            <span className="h-2 w-2 rounded-full bg-slate-200" aria-hidden />
+                                            <span className="h-2 w-2 rounded-full bg-slate-200 dark:bg-slate-600" aria-hidden />
                                         )}
-                                        <span className="font-medium text-slate-800">{item.name}</span>
+                                        <span className="font-medium text-slate-800 dark:text-slate-300">{item.name}</span>
                                     </div>
                                 </td>
-                                <td className="px-4 py-3 text-slate-600">{item.email ?? '-'}</td>
-                                <td className="px-4 py-3 text-slate-600">{item.phone ?? '-'}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{item.email ?? '-'}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{item.phone ?? '-'}</td>
                                 <td className="px-4 py-3 text-right">
                                     <Link
                                         href={`/admin/contacts/${item.id}`}
-                                        className="rounded-xl border border-slate-300 px-3 py-1 text-xs font-semibold hover:bg-slate-100"
+                                        className="rounded-xl border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
                                     >
                                         Lihat
                                     </Link>

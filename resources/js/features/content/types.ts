@@ -4,6 +4,7 @@ export type PostSummary = {
     excerpt?: string | null;
     cover_url?: string | null;
     published_at?: string | null;
+    created_at?: string | null;
 };
 
 export type EventSummary = {

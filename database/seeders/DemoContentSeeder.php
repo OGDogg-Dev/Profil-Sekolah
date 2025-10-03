@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\Album;
 use App\Models\AlbumMedia;
+use App\Models\ContactMessage;
 use App\Models\Event;
+use App\Models\MediaItem;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\SiteSetting;
@@ -20,7 +22,7 @@ class DemoContentSeeder extends Seeder
     {
         SiteSetting::query()->updateOrCreate([], [
             'site_name' => 'Vokasional Disabilitas',
-            'tagline' => 'Pelatihan vokasi inklusif — belajar, berkarya, berdaya',
+            'tagline' => 'Pelatihan vokasi inklusif ï¿½ belajar, berkarya, berdaya',
         ]);
 
         Page::updateOrCreate(
@@ -46,7 +48,7 @@ class DemoContentSeeder extends Seeder
                 'description' => 'Belajar instalasi, perakitan, dan pemeliharaan komputer serta dasar pengembangan aplikasi yang mudah diakses.',
                 'audience' => 'Penyandang disabilitas fisik dan sensorik yang berminat pada teknologi informasi.',
                 'duration' => '6 bulan',
-                'schedule' => 'Senin–Jumat, 08.00–12.00 WIB',
+                'schedule' => 'Seninï¿½Jumat, 08.00ï¿½12.00 WIB',
                 'outcomes' => [
                     'Instalasi sistem operasi dan aplikasi adaptif.',
                     'Perakitan komputer dan troubleshooting dasar.',
@@ -64,7 +66,7 @@ class DemoContentSeeder extends Seeder
                 'description' => 'Pelatihan fotografi kreatif dengan studio adaptif dan pendampingan storytelling visual.',
                 'audience' => 'Penyandang disabilitas netra low vision dan disabilitas rungu.',
                 'duration' => '5 bulan',
-                'schedule' => 'Selasa–Sabtu, 09.00–13.00 WIB',
+                'schedule' => 'Selasaï¿½Sabtu, 09.00ï¿½13.00 WIB',
                 'outcomes' => [
                     'Teknik dasar pengambilan gambar dan komposisi.',
                     'Pengolahan foto dengan software aksesibel.',
@@ -82,7 +84,7 @@ class DemoContentSeeder extends Seeder
                 'description' => 'Mempelajari servis ringan hingga perawatan berkala sepeda motor dengan perangkat bantu ergonomis.',
                 'audience' => 'Penyandang disabilitas daksa ringan dan tuli.',
                 'duration' => '7 bulan',
-                'schedule' => 'Senin–Jumat, 08.00–12.00 WIB',
+                'schedule' => 'Seninï¿½Jumat, 08.00ï¿½12.00 WIB',
                 'outcomes' => [
                     'Pemeriksaan sistem kelistrikan dan injeksi.',
                     'Perawatan mesin dan bodi motor secara mandiri.',
@@ -100,7 +102,7 @@ class DemoContentSeeder extends Seeder
                 'description' => 'Pelatihan merakit kit elektronika, soldering aman, dan perawatan perangkat rumah tangga.',
                 'audience' => 'Penyandang disabilitas rungu wicara dan autisme level ringan.',
                 'duration' => '6 bulan',
-                'schedule' => 'Senin–Kamis, 13.00–16.00 WIB',
+                'schedule' => 'Seninï¿½Kamis, 13.00ï¿½16.00 WIB',
                 'outcomes' => [
                     'Membaca diagram elektronik sederhana.',
                     'Merakit kit IoT skala kecil.',
@@ -118,7 +120,7 @@ class DemoContentSeeder extends Seeder
                 'description' => 'Pelatihan pengelasan dasar MIG/TIG dengan standar keselamatan tinggi bagi penyandang disabilitas.',
                 'audience' => 'Penyandang disabilitas daksa dan disabilitas pendengaran.',
                 'duration' => '8 bulan',
-                'schedule' => 'Senin–Jumat, 08.00–11.30 WIB',
+                'schedule' => 'Seninï¿½Jumat, 08.00ï¿½11.30 WIB',
                 'outcomes' => [
                     'Penguasaan teknik las dasar dan pemotongan logam.',
                     'Pembuatan proyek kerangka sederhana.',
@@ -136,7 +138,7 @@ class DemoContentSeeder extends Seeder
                 'description' => 'Membuat kerajinan ramah lingkungan mulai dari anyaman hingga produk dekoratif bernilai jual.',
                 'audience' => 'Penyandang disabilitas intelektual ringan dan psikososial.',
                 'duration' => '4 bulan',
-                'schedule' => 'Rabu–Jumat, 09.00–12.00 WIB',
+                'schedule' => 'Rabuï¿½Jumat, 09.00ï¿½12.00 WIB',
                 'outcomes' => [
                     'Teknik dasar anyaman, batik, dan decoupage.',
                     'Penyusunan paket produk dan penjualan daring.',
@@ -150,11 +152,28 @@ class DemoContentSeeder extends Seeder
             ],
         ];
 
-        foreach ($programSeeds as $seed) {
-            VocationalProgram::updateOrCreate(
+        foreach ($programSeeds as $index => $seed) {
+            $program = VocationalProgram::updateOrCreate(
                 ['slug' => $seed['slug']],
                 Arr::except($seed, ['slug'])
             );
+
+            // Add media items to first 3 programs
+            if ($index < 3) {
+                $mediaUrls = [
+                    'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=400&q=80',
+                    'https://images.unsplash.com/photo-1520975916090-3105956dac38?auto=format&fit=crop&w=400&q=80',
+                ];
+                foreach ($mediaUrls as $url) {
+                    MediaItem::updateOrCreate(
+                        ['vocational_program_id' => $program->id, 'url' => $url],
+                        [
+                            'type' => 'image',
+                            'alt' => $seed['title'],
+                        ]
+                    );
+                }
+            }
         }
 
         $now = now();
@@ -254,6 +273,52 @@ class DemoContentSeeder extends Seeder
         foreach ($mediaSeeds as $seed) {
             AlbumMedia::updateOrCreate(
                 ['album_id' => $album->id, 'url' => $seed['url']],
+                $seed
+            );
+        }
+
+        // Demo contact messages
+        $contactSeeds = [
+            [
+                'name' => 'Ahmad Rahman',
+                'email' => 'ahmad.rahman@example.com',
+                'phone' => '+6281234567890',
+                'message' => 'Saya ingin bertanya tentang program vokasional komputer. Apakah ada persyaratan khusus untuk penyandang disabilitas netra?',
+                'is_read' => false,
+            ],
+            [
+                'name' => 'Siti Nurhaliza',
+                'email' => 'siti.nurhaliza@example.com',
+                'phone' => '+6281987654321',
+                'message' => 'Bagaimana cara mendaftar untuk program vokasional fotografi? Apakah ada biaya pendaftaran?',
+                'is_read' => true,
+            ],
+            [
+                'name' => 'Budi Santoso',
+                'email' => 'budi.santoso@example.com',
+                'phone' => '+6281122334455',
+                'message' => 'Perusahaan kami tertarik untuk berkolaborasi dalam program magang untuk penyandang disabilitas. Siapa yang bisa kami hubungi?',
+                'is_read' => false,
+            ],
+            [
+                'name' => 'Maya Sari',
+                'email' => 'maya.sari@example.com',
+                'phone' => '+6281555666777',
+                'message' => 'Saya adalah alumni program vokasional handycraft. Ingin berbagi pengalaman dan memberikan testimoni. Bagaimana caranya?',
+                'is_read' => true,
+            ],
+            [
+                'name' => 'Rizki Pratama',
+                'email' => 'rizki.pratama@example.com',
+                'phone' => '+6281777888999',
+                'message' => 'Apakah semua fasilitas di kampus sudah ramah akses untuk penyandang disabilitas roda? Saya ingin memastikan sebelum mendaftar.',
+                'is_read' => false,
+            ],
+        ];
+
+        foreach ($contactSeeds as $seed) {
+            ContactMessage::updateOrCreate(
+                ['email' => $seed['email']],
                 $seed
             );
         }

@@ -1,11 +1,6 @@
-import React from 'react';
-import { Head } from '@inertiajs/react';
-import A11yToolbar from '@/components/layout/A11yToolbar';
-import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/Navbar';
+import { Head, usePage } from '@inertiajs/react';
+import AppShell from '@/layouts/AppShell';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import Section from '@/components/ui/Section';
-import Card from '@/components/ui/card';
 import MediaGallery from '@/components/vocational/MediaGallery';
 import type { AlbumSummary } from '@/features/content/types';
 
@@ -13,37 +8,42 @@ interface GalleryDetailProps {
     album: AlbumSummary;
 }
 
+type PageProps = {
+    settings?: {
+        site_name?: string;
+    };
+};
+
 export default function GalleryDetail({ album }: GalleryDetailProps) {
-    const siteName = 'Vokasional Disabilitas';
+    const { props } = usePage<PageProps>();
+    const siteName = props?.settings?.site_name ?? 'SMK Negeri 10 Kuningan';
     const description = album.description ?? `Album ${album.title} dari ${siteName}.`;
 
     return (
-        <div className="min-h-screen bg-white text-slate-900">
+        <AppShell siteName={siteName}>
             <Head title={`${album.title} - ${siteName}`}>
                 <meta name="description" content={description} />
             </Head>
-            <A11yToolbar />
-            <Navbar schoolName={siteName} activeId="galeri" />
-            <main id="main-content" className="space-y-12">
-                <Section id="galeri-detail" className="space-y-6">
+
+            <section className="bg-white">
+                <div className="mx-auto w-full max-w-6xl px-4 py-10">
                     <Breadcrumbs
                         items={[
                             { label: 'Galeri', href: '/galeri' },
                             { label: album.title },
                         ]}
                     />
-                    <header className="space-y-3">
-                        <h1 className="text-3xl font-bold text-slate-900">{album.title}</h1>
-                        {album.description ? (
-                            <Card className="border-slate-200 bg-slate-50/60 p-5 text-sm text-slate-600">
-                                {album.description}
-                            </Card>
-                        ) : null}
+                    <header className="mt-4 border-b-4 border-[#1b57d6] pb-3">
+                        <h1 className="text-xl font-semibold uppercase tracking-[0.2em] text-[#1b57d6]">{album.title}</h1>
                     </header>
-                    <MediaGallery items={album.media ?? []} />
-                </Section>
-            </main>
-            <Footer siteName={siteName} />
-        </div>
+                    {album.description ? (
+                        <p className="mt-4 text-sm text-slate-600">{album.description}</p>
+                    ) : null}
+                    <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <MediaGallery items={album.media ?? []} />
+                    </div>
+                </div>
+            </section>
+        </AppShell>
     );
 }

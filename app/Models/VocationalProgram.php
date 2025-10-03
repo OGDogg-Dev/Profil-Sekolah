@@ -18,12 +18,14 @@ class VocationalProgram extends Model
         'outcomes',
         'facilities',
         'mentors',
+        'photos',
     ];
 
     protected $casts = [
         'outcomes' => 'array',
         'facilities' => 'array',
         'mentors' => 'array',
+        'photos' => 'array',
     ];
 
     public function media(): HasMany

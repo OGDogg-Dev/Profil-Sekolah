@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::post('albums/{album}/media', [App\Http\Controllers\Admin\AlbumMediaController::class, 'store'])->name('albums.media.store');
         Route::delete('albums/{album}/media/{media}', [App\Http\Controllers\Admin\AlbumMediaController::class, 'destroy'])->name('albums.media.destroy');
         Route::resource('vocational-programs', App\Http\Controllers\Admin\VocationalProgramController::class);
+        Route::delete('vocational-programs/{vocational_program}/media/{media}', [App\Http\Controllers\Admin\VocationalProgramController::class, 'deleteMedia'])->name('vocational-programs.media.destroy');
         Route::resource('media', App\Http\Controllers\Admin\MediaItemController::class)->only(['store', 'destroy']);
         Route::get('settings', [App\Http\Controllers\Admin\SettingController::class, 'edit'])->name('settings.edit');
         Route::put('settings', [App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');

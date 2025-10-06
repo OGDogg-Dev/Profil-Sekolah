@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { Layers, Search, Sparkles, UsersRound } from 'lucide-react';
-import AppShell from '@/layouts/AppShell';
+import { PublicLayout } from '@/layouts/public/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import ProgramGrid from '@/components/vocational/ProgramGrid';
 import type { VocationalProgram } from '@/features/vocational/types';
@@ -128,7 +128,7 @@ export default function VocationalIndex({ items }: VocationalIndexProps) {
     }, [programs]);
 
     return (
-        <AppShell siteName={siteName} tagline={tagline}>
+        <PublicLayout>
             <Head title={`Direktori Program Vokasional - ${siteName}`}>
                 <meta
                     name="description"
@@ -328,6 +328,6 @@ export default function VocationalIndex({ items }: VocationalIndexProps) {
                     </aside>
                 </div>
             </section>
-        </AppShell>
+        </PublicLayout>
     );
 }

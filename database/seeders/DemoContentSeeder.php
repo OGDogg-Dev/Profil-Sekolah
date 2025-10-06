@@ -6,13 +6,14 @@ use App\Models\Album;
 use App\Models\AlbumMedia;
 use App\Models\ContactMessage;
 use App\Models\Event;
+use App\Models\MediaAsset;
 use App\Models\MediaItem;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\SiteSetting;
 use App\Models\VocationalProgram;
-use Illuminate\Database\Seeder;
 use Illuminate\Support\Arr;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -20,10 +21,7 @@ class DemoContentSeeder extends Seeder
 {
     public function run(): void
     {
-        SiteSetting::query()->updateOrCreate([], [
-            'site_name' => 'Vokasional Disabilitas',
-            'tagline' => 'Pelatihan vokasi inklusif � belajar, berkarya, berdaya',
-        ]);
+        $this->seedSiteSettings();
 
         Page::updateOrCreate(
             ['slug' => 'profil'],
@@ -41,14 +39,116 @@ class DemoContentSeeder extends Seeder
             ],
         );
 
-        $programSeeds = [
+        $this->seedPrograms();
+        $this->seedPosts();
+        $this->seedEvents();
+        $this->seedAlbums();
+        $this->seedContactMessages();
+    }
+
+    private function seedSiteSettings(): void
+    {
+        $this->setSettings('general', [
+            'site_name' => 'Vokasional Disabilitas',
+            'tagline' => 'Pelatihan vokasi inklusif - belajar, berkarya, berdaya',
+            'address' => 'Jl. Rampa Akses 01, Surakarta',
+            'phone' => '+62-812-0000-0000',
+            'email' => 'halo@sekolahinklusi.sch.id',
+            'footer_hours' => "Sen-Jum: 07.00-15.00\nSab: 08.00-12.00\nMin & Libur: Tutup",
+        ]);
+
+        $this->setSettings('home', [
+            'hero_eyebrow' => 'Sekolah Inklusif - Ramah Disabilitas',
+            'hero_title' => 'Setiap Anak Berhak Tumbuh & Berprestasi',
+            'hero_description' => 'Lingkungan belajar yang aman, aksesibel, dan menyenangkan dengan dukungan guru pendamping, terapi, serta teknologi asistif.',
+            'hero_primary_label' => 'Daftar PPDB',
+            'hero_primary_link' => '/ppdb',
+            'hero_secondary_label' => 'Hubungi Kami',
+            'hero_secondary_link' => '/hubungi-kami',
+            'highlights' => [
+                ['title' => 'Program Unggulan', 'description' => 'Inklusi SD-SMA, terapi wicara dan okupasi, teknologi asistif & koding', 'href' => '/vokasional'],
+                ['title' => 'Berita Terbaru', 'description' => 'Sorotan kegiatan dan prestasi siswa setiap pekan', 'href' => '/berita'],
+                ['title' => 'Agenda', 'description' => 'Seminar orang tua, open house, dan perayaan inklusi nasional', 'href' => '/agenda'],
+                ['title' => 'Galeri', 'description' => 'Fasilitas aksesibel dan dokumentasi kegiatan siswa', 'href' => '/galeri'],
+            ],
+            'stats' => [
+                ['label' => 'Siswa', 'value' => '1.200+'],
+                ['label' => 'Tenaga Pendidik', 'value' => '85'],
+                ['label' => 'Akreditasi', 'value' => 'A'],
+                ['label' => 'Dokumentasi', 'value' => '+500'],
+            ],
+            'news_title' => 'Berita Terbaru',
+            'news_description' => 'Informasi terbaru tentang kegiatan dan prestasi sekolah.',
+            'agenda_title' => 'Agenda Terdekat',
+            'agenda_description' => 'Jadwal kegiatan sekolah dan komunitas inklusif.',
+            'gallery_title' => 'Galeri / Prestasi',
+            'gallery_description' => 'Dokumentasi kegiatan, fasilitas, dan karya siswa.',
+            'testimonials_title' => 'Suara Mereka',
+            'testimonials_items' => [
+                ['quote' => 'Anak saya lebih percaya diri; guru pendamping sangat suportif dan programnya jelas.', 'name' => 'Ibu Sari', 'role' => 'Orang tua'],
+                ['quote' => 'Lab komputer aksesibel membuat saya berani melanjutkan belajar koding.', 'name' => 'Rafi', 'role' => 'Alumni'],
+            ],
+        ]);
+
+        $this->setSettings('profile', [
+            'title' => 'Profil Sekolah',
+            'content' => '<p>Konten profil belum tersedia.</p>',
+        ]);
+
+        $this->setSettings('vision', [
+            'title' => 'Visi & Misi',
+            'description' => 'Menjadi pusat vokasi inklusif yang memberdayakan peserta didik dengan berbagai kebutuhan khusus.',
+            'vision' => 'Menjadi ekosistem vokasional inklusif yang menumbuhkan kemandirian dan daya saing penyandang disabilitas di dunia kerja.',
+            'missions' => [
+                'Menyelenggarakan pelatihan praktis dengan teknologi adaptif.',
+                'Membangun budaya saling dukung antara peserta, mentor, dan industri.',
+                'Menyediakan layanan pendampingan karier dan kewirausahaan yang berkelanjutan.',
+                'Mengedepankan aksesibilitas universal pada setiap fasilitas dan materi belajar.',
+            ],
+        ]);
+
+        $this->setSettings('contact', [
+            'title' => 'Hubungi Kami',
+            'description' => 'Kami siap membantu Anda mendapatkan informasi terbaru seputar program, fasilitas, dan layanan sekolah.',
+            'map_embed' => null,
+        ]);
+
+        MediaAsset::updateOrCreate(
+            ['collection' => 'home', 'key' => 'hero'],
+            [
+                'disk' => 'public',
+                'path' => 'public-content/home/hero-demo.jpg',
+                'type' => 'image',
+                'alt' => 'Peserta vokasional berkolaborasi di ruang kelas',
+            ],
+        );
+    }
+
+    private function setSettings(string $section, array $values): void
+    {
+        foreach ($values as $key => $value) {
+            SiteSetting::updateOrCreate(
+                ['section' => $section, 'key' => $key],
+                [
+                    'type' => is_array($value) ? 'json' : 'text',
+                    'value' => is_array($value)
+                        ? json_encode($value, JSON_UNESCAPED_UNICODE)
+                        : (string) $value,
+                ],
+            );
+        }
+    }
+
+    private function seedPrograms(): void
+    {
+        $programs = [
             [
                 'slug' => 'komputer',
                 'title' => 'Vokasional Komputer',
-                'description' => 'Belajar instalasi, perakitan, dan pemeliharaan komputer serta dasar pengembangan aplikasi yang mudah diakses.',
+                'description' => 'Belajar instalasi, perakitan, dan pemeliharaan komputer serta dasar pengembangan aplikasi mudah diakses.',
                 'audience' => 'Penyandang disabilitas fisik dan sensorik yang berminat pada teknologi informasi.',
                 'duration' => '6 bulan',
-                'schedule' => 'Senin�Jumat, 08.00�12.00 WIB',
+                'schedule' => 'Senin-Jumat, 08.00-12.00 WIB',
                 'outcomes' => [
                     'Instalasi sistem operasi dan aplikasi adaptif.',
                     'Perakitan komputer dan troubleshooting dasar.',
@@ -66,7 +166,7 @@ class DemoContentSeeder extends Seeder
                 'description' => 'Pelatihan fotografi kreatif dengan studio adaptif dan pendampingan storytelling visual.',
                 'audience' => 'Penyandang disabilitas netra low vision dan disabilitas rungu.',
                 'duration' => '5 bulan',
-                'schedule' => 'Selasa�Sabtu, 09.00�13.00 WIB',
+                'schedule' => 'Selasa-Sabtu, 09.00-13.00 WIB',
                 'outcomes' => [
                     'Teknik dasar pengambilan gambar dan komposisi.',
                     'Pengolahan foto dengan software aksesibel.',
@@ -84,7 +184,7 @@ class DemoContentSeeder extends Seeder
                 'description' => 'Mempelajari servis ringan hingga perawatan berkala sepeda motor dengan perangkat bantu ergonomis.',
                 'audience' => 'Penyandang disabilitas daksa ringan dan tuli.',
                 'duration' => '7 bulan',
-                'schedule' => 'Senin�Jumat, 08.00�12.00 WIB',
+                'schedule' => 'Senin-Jumat, 08.00-12.00 WIB',
                 'outcomes' => [
                     'Pemeriksaan sistem kelistrikan dan injeksi.',
                     'Perawatan mesin dan bodi motor secara mandiri.',
@@ -94,233 +194,128 @@ class DemoContentSeeder extends Seeder
                     'Bengkel praktik dengan meja kerja adjustable.',
                     'Toolkit adaptif untuk pegangan terbatas.',
                 ],
-                'mentors' => ['Teknisi otomotif bersertifikasi', 'Instruktur keselamatan kerja'],
-            ],
-            [
-                'slug' => 'elektronika',
-                'title' => 'Vokasional Elektronika',
-                'description' => 'Pelatihan merakit kit elektronika, soldering aman, dan perawatan perangkat rumah tangga.',
-                'audience' => 'Penyandang disabilitas rungu wicara dan autisme level ringan.',
-                'duration' => '6 bulan',
-                'schedule' => 'Senin�Kamis, 13.00�16.00 WIB',
-                'outcomes' => [
-                    'Membaca diagram elektronik sederhana.',
-                    'Merakit kit IoT skala kecil.',
-                    'Perawatan perangkat elektronik rumah tangga.',
-                ],
-                'facilities' => [
-                    'Laboratorium elektronik dengan alat bantu visual.',
-                    'Stasiun kerja ergonomis dan alat keselamatan.',
-                ],
-                'mentors' => ['Ahli elektronika industri', 'Fasilitator komunikasi isyarat'],
-            ],
-            [
-                'slug' => 'las',
-                'title' => 'Vokasional Las',
-                'description' => 'Pelatihan pengelasan dasar MIG/TIG dengan standar keselamatan tinggi bagi penyandang disabilitas.',
-                'audience' => 'Penyandang disabilitas daksa dan disabilitas pendengaran.',
-                'duration' => '8 bulan',
-                'schedule' => 'Senin�Jumat, 08.00�11.30 WIB',
-                'outcomes' => [
-                    'Penguasaan teknik las dasar dan pemotongan logam.',
-                    'Pembuatan proyek kerangka sederhana.',
-                    'Standar keselamatan kerja bengkel logam.',
-                ],
-                'facilities' => [
-                    'Workshop las dengan exhaust dan tirai pelindung.',
-                    'Alat keselamatan adaptif untuk mobilitas terbatas.',
-                ],
-                'mentors' => ['Welding inspector berpengalaman', 'Fasilitator bahasa isyarat'],
-            ],
-            [
-                'slug' => 'handycraft',
-                'title' => 'Vokasional Handycraft',
-                'description' => 'Membuat kerajinan ramah lingkungan mulai dari anyaman hingga produk dekoratif bernilai jual.',
-                'audience' => 'Penyandang disabilitas intelektual ringan dan psikososial.',
-                'duration' => '4 bulan',
-                'schedule' => 'Rabu�Jumat, 09.00�12.00 WIB',
-                'outcomes' => [
-                    'Teknik dasar anyaman, batik, dan decoupage.',
-                    'Penyusunan paket produk dan penjualan daring.',
-                    'Penguatan soft skill layanan pelanggan.',
-                ],
-                'facilities' => [
-                    'Studio kerajinan dengan alat bantu ergonomis.',
-                    'Galeri mini untuk kurasi produk.',
-                ],
-                'mentors' => ['Artisan craft lokal', 'Pendamping kewirausahaan'],
+                'mentors' => ['Teknisi otomotif bersertifikasi', 'Instruktur vokasional'],
             ],
         ];
 
-        foreach ($programSeeds as $index => $seed) {
-            $program = VocationalProgram::updateOrCreate(
+        foreach ($programs as $seed) {
+            VocationalProgram::updateOrCreate(
                 ['slug' => $seed['slug']],
-                Arr::except($seed, ['slug'])
+                Arr::only($seed, ['title', 'description', 'audience', 'duration', 'schedule', 'outcomes', 'facilities', 'mentors']),
             );
-
-            // Add media items to first 3 programs
-            if ($index < 3) {
-                $mediaUrls = [
-                    'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=400&q=80',
-                    'https://images.unsplash.com/photo-1520975916090-3105956dac38?auto=format&fit=crop&w=400&q=80',
-                ];
-                foreach ($mediaUrls as $url) {
-                    MediaItem::updateOrCreate(
-                        ['vocational_program_id' => $program->id, 'url' => $url],
-                        [
-                            'type' => 'image',
-                            'alt' => $seed['title'],
-                        ]
-                    );
-                }
-            }
         }
+    }
 
-        $now = now();
-
-        $postSeeds = [
+    private function seedPosts(): void
+    {
+        $posts = [
             [
-                'title' => 'Workshop Inklusif: Pengenalan Teknologi Adaptif',
-                'excerpt' => 'Peserta mempraktikkan penggunaan screen reader dan perangkat aksesibilitas terbaru.',
-                'content' => '<p>Kegiatan workshop berlangsung selama dua hari dengan menghadirkan mentor dari industri teknologi aksesibel. Peserta mempraktikkan langsung penggunaan perangkat dan perangkat lunak adaptif...</p>',
-                'cover_url' => 'https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?auto=format&fit=crop&w=1200&q=80',
+                'title' => 'Launching Laboratorium Inovasi Baru',
+                'excerpt' => 'Fasilitas baru untuk mendukung pembelajaran teknologi adaptif.',
+                'content' => '<p>Kami meluncurkan laboratorium baru dengan perangkat aksesibilitas terkini.</p>',
+                'status' => 'published',
+                'cover_url' => 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
+                'published_at' => now()->subDays(5),
             ],
             [
-                'title' => 'Prestasi Alumni di Ajang Kompetisi Startup Disabilitas',
-                'excerpt' => 'Tim alumni vokasional meraih juara favorit berkat aplikasi layanan inklusif.',
-                'content' => '<p>Kompetisi startup disabilitas 2025 menobatkan tim alumni sebagai juara favorit...</p>',
-                'cover_url' => 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
-            ],
-            [
-                'title' => 'Kolaborasi dengan Industri Otomotif untuk Program Magang',
-                'excerpt' => 'Program Bengkel Motor menggandeng mitra bengkel ramah disabilitas.',
-                'content' => '<p>Siswa vokasional bengkel sepeda motor mendapatkan kesempatan magang di bengkel mitra...</p>',
-                'cover_url' => 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1200&q=80',
-            ],
-            [
-                'title' => 'Karya Fotografi Peserta Dipamerkan di Galeri Kota',
-                'excerpt' => 'Album foto bertema Kota Inklusif mendapat apresiasi pengunjung.',
-                'content' => '<p>Program Vokasional Fotografi kembali menggelar pameran karya tahunan...</p>',
-                'cover_url' => 'https://images.unsplash.com/photo-1529101091764-c3526daf38fe?auto=format&fit=crop&w=1200&q=80',
-            ],
-            [
-                'title' => 'Pelatihan Soft Skill Layanan Pelanggan',
-                'excerpt' => 'Pendamping psikososial memfasilitasi simulasi komunikasi pelanggan.',
-                'content' => '<p>Pelatihan layanan pelanggan menjadi materi wajib bagi peserta vokasional...</p>',
-                'cover_url' => 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
+                'title' => 'Sesi Pelatihan Soft Skill Bersama Industri',
+                'excerpt' => 'Kolaborasi dengan mitra industri untuk menyiapkan peserta vokasional.',
+                'content' => '<p>Pelatihan soft skill bersama praktisi HR memberikan pengalaman nyata bagi peserta.</p>',
+                'status' => 'published',
+                'cover_url' => 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
+                'published_at' => now()->subDays(9),
             ],
         ];
 
-        foreach ($postSeeds as $index => $data) {
+        foreach ($posts as $seed) {
             Post::updateOrCreate(
-                ['slug' => Str::slug($data['title'])],
-                array_merge($data, [
-                    'status' => 'published',
-                    'published_at' => $now->copy()->subDays($index * 3),
-                ])
+                ['slug' => Str::slug($seed['title'])],
+                $seed,
             );
         }
+    }
 
-        $eventSeeds = [
+    private function seedEvents(): void
+    {
+        $now = Carbon::now();
+
+        $events = [
             [
                 'title' => 'Open House Program Vokasional',
-                'description' => 'Sesi perkenalan program, tur fasilitas, dan konsultasi dengan mentor.',
-                'start_at' => $now->copy()->addDays(5)->setTime(9, 0),
-                'end_at' => $now->copy()->addDays(5)->setTime(12, 0),
-                'location' => 'Aula Utama Kampus Vokasional',
+                'description' => 'Kesempatan mengenal fasilitas, kurikulum, dan mentor vokasional inklusif.',
+                'start_at' => $now->copy()->addDays(7)->setTime(9, 0),
+                'end_at' => $now->copy()->addDays(7)->setTime(12, 0),
+                'location' => 'Kampus Vokasional Disabilitas',
             ],
             [
-                'title' => 'Kelas Umum Literasi Digital Inklusif',
-                'description' => 'Kegiatan belajar bersama mengenal literasi digital dengan perangkat adaptif.',
-                'start_at' => $now->copy()->addDays(12)->setTime(13, 30),
-                'end_at' => $now->copy()->addDays(12)->setTime(16, 0),
+                'title' => 'Workshop Literasi Digital Inklusif',
+                'description' => 'Pelatihan penggunaan teknologi aksesibel untuk orang tua dan peserta.',
+                'start_at' => $now->copy()->addDays(14)->setTime(13, 30),
+                'end_at' => $now->copy()->addDays(14)->setTime(16, 0),
                 'location' => 'Ruang Multimedia Lantai 2',
-            ],
-            [
-                'title' => 'Pameran Karya Peserta Handycraft',
-                'description' => 'Pameran produk kerajinan ramah lingkungan hasil peserta vokasional.',
-                'start_at' => $now->copy()->addDays(20)->setTime(10, 0),
-                'end_at' => $now->copy()->addDays(20)->setTime(15, 0),
-                'location' => 'Galeri Kota Kreatif',
             ],
         ];
 
-        foreach ($eventSeeds as $seed) {
+        foreach ($events as $seed) {
             Event::updateOrCreate(
                 ['slug' => Str::slug($seed['title'])],
-                $seed
+                $seed,
             );
         }
+    }
 
+    private function seedAlbums(): void
+    {
         $album = Album::updateOrCreate(
             ['slug' => 'kegiatan-vokasional'],
             [
                 'title' => 'Kegiatan Vokasional 2025',
                 'cover_url' => 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
                 'description' => 'Kumpulan dokumentasi kegiatan belajar dan karya peserta dari berbagai program.',
-            ]
+            ],
         );
 
-        $mediaSeeds = [
+        $media = [
             ['type' => 'image', 'url' => 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Pendampingan mentoring di lab komputer', 'sort' => 1],
             ['type' => 'image', 'url' => 'https://images.unsplash.com/photo-1520975916090-3105956dac38?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Workshop fotografi inklusif', 'sort' => 2],
             ['type' => 'image', 'url' => 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Praktik perakitan komputer', 'sort' => 3],
-            ['type' => 'image', 'url' => 'https://images.unsplash.com/photo-1472289065668-ce650ac443d2?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Pelatihan soft skill layanan pelanggan', 'sort' => 4],
-            ['type' => 'video', 'url' => 'https://www.youtube.com/watch?v=1q8Vd7xqv-E', 'caption' => 'Kilas balik showcase vokasional', 'poster' => null, 'track_vtt' => null, 'sort' => 5],
-            ['type' => 'image', 'url' => 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Sesi kolaborasi lintas program', 'sort' => 6],
+            ['type' => 'image', 'url' => 'https://images.unsplash.com/photo-1472289065668-ce650ac443d2?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Pelatihan layanan pelanggan', 'sort' => 4],
         ];
 
-        foreach ($mediaSeeds as $seed) {
+        foreach ($media as $seed) {
             AlbumMedia::updateOrCreate(
                 ['album_id' => $album->id, 'url' => $seed['url']],
-                $seed
+                $seed,
             );
         }
+    }
 
-        // Demo contact messages
-        $contactSeeds = [
+    private function seedContactMessages(): void
+    {
+        $contacts = [
             [
                 'name' => 'Ahmad Rahman',
                 'email' => 'ahmad.rahman@example.com',
                 'phone' => '+6281234567890',
-                'message' => 'Saya ingin bertanya tentang program vokasional komputer. Apakah ada persyaratan khusus untuk penyandang disabilitas netra?',
+                'message' => 'Saya ingin bertanya tentang program vokasional komputer untuk low vision.',
                 'is_read' => false,
             ],
             [
                 'name' => 'Siti Nurhaliza',
                 'email' => 'siti.nurhaliza@example.com',
                 'phone' => '+6281987654321',
-                'message' => 'Bagaimana cara mendaftar untuk program vokasional fotografi? Apakah ada biaya pendaftaran?',
+                'message' => 'Bagaimana cara mendaftar untuk program fotografi? Ada biaya?',
                 'is_read' => true,
-            ],
-            [
-                'name' => 'Budi Santoso',
-                'email' => 'budi.santoso@example.com',
-                'phone' => '+6281122334455',
-                'message' => 'Perusahaan kami tertarik untuk berkolaborasi dalam program magang untuk penyandang disabilitas. Siapa yang bisa kami hubungi?',
-                'is_read' => false,
-            ],
-            [
-                'name' => 'Maya Sari',
-                'email' => 'maya.sari@example.com',
-                'phone' => '+6281555666777',
-                'message' => 'Saya adalah alumni program vokasional handycraft. Ingin berbagi pengalaman dan memberikan testimoni. Bagaimana caranya?',
-                'is_read' => true,
-            ],
-            [
-                'name' => 'Rizki Pratama',
-                'email' => 'rizki.pratama@example.com',
-                'phone' => '+6281777888999',
-                'message' => 'Apakah semua fasilitas di kampus sudah ramah akses untuk penyandang disabilitas roda? Saya ingin memastikan sebelum mendaftar.',
-                'is_read' => false,
             ],
         ];
 
-        foreach ($contactSeeds as $seed) {
+        foreach ($contacts as $seed) {
             ContactMessage::updateOrCreate(
                 ['email' => $seed['email']],
-                $seed
+                $seed,
             );
         }
     }
 }
+
+

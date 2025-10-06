@@ -4,13 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class SiteSetting extends Model
+class MediaAsset extends Model
 {
     protected $fillable = [
-        'section',
+        'collection',
         'key',
+        'disk',
+        'path',
         'type',
-        'value',
+        'alt',
         'meta',
     ];
 

@@ -12,7 +12,6 @@ import {
     MessageCircle,
     Newspaper,
     Phone,
-    Rss,
     Target,
     User,
     X,
@@ -96,55 +95,15 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
         setMobileOpen(false);
     }, [currentPath]);
 
+    const whatsappNumber = sharedSettings?.whatsapp?.replace(/[^0-9]/g, '') ?? null;
+    const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : '/hubungi-kami';
+    const whatsappLabel = whatsappNumber ? 'WhatsApp' : 'Hubungi Kami';
+
     const year = new Date().getFullYear();
 
     return (
         <div className="min-h-screen bg-slate-100 text-slate-800">
-            <header className="border-b border-slate-200 bg-white">
-                <div className="border-b border-slate-200/80 bg-slate-900 text-white">
-                    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                            {address ? (
-                                <span className="inline-flex items-center gap-2 text-white/80">
-                                    <MapPin className="h-4 w-4" aria-hidden />
-                                    {address}
-                                </span>
-                            ) : null}
-                            {email ? (
-                                <a href={`mailto:${email}`} className="inline-flex items-center gap-2 text-white/80 hover:text-white">
-                                    <Mail className="h-4 w-4" aria-hidden />
-                                    {email}
-                                </a>
-                            ) : null}
-                            {phone ? (
-                                <a href={`tel:${phone.replace(/\s+/g, '')}`} className="inline-flex items-center gap-2 text-white/80 hover:text-white">
-                                    <Phone className="h-4 w-4" aria-hidden />
-                                    {phone}
-                                </a>
-                            ) : null}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/70">
-                            {socialLinks.length > 0 ? (
-                                <nav aria-label="Media sosial" className="flex flex-wrap items-center gap-2">
-                                    {socialLinks.map((link, index) => (
-                                        <Link
-                                            key={`${link.url}-${index}`}
-                                            href={link.url ?? '#'}
-                                            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-semibold transition hover:bg-white/20 hover:text-white"
-                                        >
-                                            {link.label ?? 'Sosial'}
-                                        </Link>
-                                    ))}
-                                </nav>
-                            ) : null}
-                            <Link href="#rss" className="inline-flex items-center gap-1 hover:text-white">
-                                <Rss className="h-4 w-4" />
-                                RSS
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-
+            <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
                 <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
                     <Link href="/" className="flex items-center gap-3" aria-label={`Beranda ${resolvedSiteName}`}>
                         <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30">
@@ -161,7 +120,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                         </div>
                     </Link>
                     <div className="hidden items-center gap-8 md:flex">
-                        <nav className="flex items-center gap-1 text-sm font-semibold text-slate-600">
+                        <nav className="flex items-end gap-3">
                             {NAV_ITEMS.map((item) => {
                                 const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
                                 const Icon = item.icon;
@@ -169,11 +128,14 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                                     <Link
                                         key={item.id}
                                         href={item.href}
+                                        aria-current={active ? 'page' : undefined}
                                         data-active={active}
-                                        className="inline-flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-600 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-700"
+                                        className="group flex flex-col items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 transition hover:text-emerald-600"
                                     >
-                                        <Icon className="h-4 w-4" aria-hidden />
-                                        {item.label}
+                                        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition group-data-[active=true]:border-emerald-500 group-data-[active=true]:text-emerald-600 group-hover:border-emerald-400 group-hover:text-emerald-600">
+                                            <Icon className="h-5 w-5" aria-hidden />
+                                        </span>
+                                        <span>{item.label}</span>
                                     </Link>
                                 );
                             })}
@@ -181,10 +143,11 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                         <div className="flex items-center gap-3">
                             <ThemeToggle />
                             <Link
-                                href="/hubungi-kami"
-                                className="inline-flex items-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                                href={whatsappHref}
+                                className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
                             >
-                                Hubungi Kami
+                                <MessageCircle className="h-4 w-4" aria-hidden />
+                                {whatsappLabel}
                             </Link>
                         </div>
                     </div>
@@ -200,7 +163,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                 </div>
                 {mobileOpen ? (
                     <div id="public-mobile-nav" className="border-t border-slate-200 bg-white px-4 pb-4">
-                        <nav className="flex flex-col gap-1 text-sm font-semibold text-slate-600">
+                        <nav className="grid grid-cols-2 gap-2 text-sm font-semibold text-slate-600">
                             {NAV_ITEMS.map((item) => {
                                 const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
                                 const Icon = item.icon;
@@ -209,19 +172,22 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                                         key={item.id}
                                         href={item.href}
                                         data-active={active}
-                                        className="inline-flex items-center gap-2 rounded-md px-3 py-2 transition hover:bg-emerald-50 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-700"
+                                        className="group inline-flex flex-col items-start gap-2 rounded-md border border-slate-200 px-3 py-3 transition hover:border-emerald-400 hover:bg-emerald-50 data-[active=true]:border-emerald-500 data-[active=true]:bg-emerald-50 data-[active=true]:text-emerald-700"
                                     >
-                                        <Icon className="h-4 w-4" aria-hidden />
-                                        {item.label}
+                                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-inner group-data-[active=true]:text-emerald-600">
+                                            <Icon className="h-5 w-5" aria-hidden />
+                                        </span>
+                                        <span className="text-xs font-semibold uppercase tracking-[0.2em]">{item.label}</span>
                                     </Link>
                                 );
                             })}
                         </nav>
                         <Link
-                            href="/hubungi-kami"
-                            className="mt-4 inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                            href={whatsappHref}
+                            className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
                         >
-                            Hubungi Kami
+                            <MessageCircle className="h-4 w-4" aria-hidden />
+                            {whatsappLabel}
                         </Link>
                     </div>
                 ) : null}

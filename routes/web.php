@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\MediaItemController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
+use App\Http\Controllers\Admin\PublicContentController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\VocationalProgramController;
 use App\Http\Controllers\Public\AlbumController as PubAlbumController;
@@ -28,6 +29,7 @@ Route::get('/vokasional/{slug}', [PubVocController::class, 'show'])->name('voc.s
 Route::get('/berita', [PubPostController::class, 'index'])->name('posts.index');
 Route::get('/berita/{slug}', [PubPostController::class, 'show'])->name('posts.show');
 Route::get('/agenda', [PubEventController::class, 'index'])->name('events.index');
+Route::get('/agenda/{slug}/ics', [PubEventController::class, 'ics'])->name('events.ics');
 Route::get('/agenda/{slug}', [PubEventController::class, 'show'])->name('events.show');
 Route::get('/galeri', [PubAlbumController::class, 'index'])->name('albums.index');
 Route::get('/galeri/{slug}', [PubAlbumController::class, 'show'])->name('albums.show');
@@ -48,6 +50,8 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::resource('posts', App\Http\Controllers\Admin\PostController::class);
         Route::resource('events', App\Http\Controllers\Admin\EventController::class);
         Route::resource('albums', App\Http\Controllers\Admin\AlbumController::class);
+        Route::get('content/{section}', [PublicContentController::class, 'edit'])->name('content.edit');
+        Route::post('content/{section}', [PublicContentController::class, 'update'])->name('content.update');
         Route::post('albums/{album}/media', [App\Http\Controllers\Admin\AlbumMediaController::class, 'store'])->name('albums.media.store');
         Route::delete('albums/{album}/media/{media}', [App\Http\Controllers\Admin\AlbumMediaController::class, 'destroy'])->name('albums.media.destroy');
         Route::resource('vocational-programs', App\Http\Controllers\Admin\VocationalProgramController::class);

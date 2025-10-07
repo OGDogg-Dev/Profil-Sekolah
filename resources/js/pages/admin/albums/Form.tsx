@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/pages/admin/_layout/AdminLayout';
 
+type PagePropsWithErrors = {
+    errors?: Record<string, string>;
+};
+
 interface AlbumFormProps {
     album?: {
         id: number;
@@ -23,8 +27,8 @@ interface AlbumFormProps {
 
 export default function AlbumForm({ album }: AlbumFormProps) {
     const isEdit = Boolean(album?.id);
-    const { props } = usePage();
-    const errors = (props as any)?.errors as Record<string, string> | undefined;
+    const { props } = usePage<PagePropsWithErrors>();
+    const errors = props.errors;
 
     const [form, setForm] = useState({
         title: album?.title ?? '',

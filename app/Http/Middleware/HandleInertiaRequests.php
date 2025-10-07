@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Facades\SiteContent;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -46,6 +47,26 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'settings' => $this->publicSettings(),
+        ];
+    }
+
+    private function publicSettings(): array
+    {
+        $logo = SiteContent::getMedia('logo', 'global');
+        $og = SiteContent::getMedia('og', 'global');
+
+        return [
+            'name' => SiteContent::getSetting('general', 'site_name'),
+            'tagline' => SiteContent::getSetting('general', 'tagline'),
+            'logo_url' => $logo ? SiteContent::url($logo) : null,
+            'phone' => SiteContent::getSetting('general', 'phone'),
+            'whatsapp' => SiteContent::getSetting('general', 'whatsapp'),
+            'email' => SiteContent::getSetting('general', 'email'),
+            'address' => SiteContent::getSetting('general', 'address'),
+            'social' => SiteContent::getSetting('general', 'social', []),
+            'footer_hours' => SiteContent::getSetting('general', 'footer_hours', []),
+            'og_image_url' => $og ? SiteContent::url($og) : null,
         ];
     }
 }

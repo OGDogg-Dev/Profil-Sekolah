@@ -1,6 +1,22 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Mail, MapPin, Menu, Phone, Rss, X } from 'lucide-react';
+import {
+    CalendarDays,
+    Home,
+    Image as ImageIcon,
+    Layers,
+    LucideIcon,
+    Mail,
+    MapPin,
+    Menu,
+    MessageCircle,
+    Newspaper,
+    Phone,
+    Rss,
+    Target,
+    User,
+    X,
+} from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
 interface PublicLayoutProps {
@@ -43,17 +59,18 @@ type NavItem = {
     id: string;
     label: string;
     href: string;
+    icon: LucideIcon;
 };
 
 const NAV_ITEMS: NavItem[] = [
-    { id: 'home', label: 'Beranda', href: '/' },
-    { id: 'profil', label: 'Profil', href: '/profil' },
-    { id: 'visi', label: 'Visi & Misi', href: '/visi-misi' },
-    { id: 'program', label: 'Direktori Program', href: '/vokasional' },
-    { id: 'berita', label: 'Berita', href: '/berita' },
-    { id: 'agenda', label: 'Agenda', href: '/agenda' },
-    { id: 'galeri', label: 'Galeri', href: '/galeri' },
-    { id: 'kontak', label: 'Hubungi Kami', href: '/hubungi-kami' },
+    { id: 'home', label: 'Beranda', href: '/', icon: Home },
+    { id: 'profil', label: 'Profil', href: '/profil', icon: User },
+    { id: 'visi', label: 'Visi & Misi', href: '/visi-misi', icon: Target },
+    { id: 'program', label: 'Direktori Program', href: '/vokasional', icon: Layers },
+    { id: 'berita', label: 'Berita', href: '/berita', icon: Newspaper },
+    { id: 'agenda', label: 'Agenda', href: '/agenda', icon: CalendarDays },
+    { id: 'galeri', label: 'Galeri', href: '/galeri', icon: ImageIcon },
+    { id: 'kontak', label: 'Hubungi Kami', href: '/hubungi-kami', icon: MessageCircle },
 ];
 
 export default function PublicLayout({ children, siteName, tagline }: PublicLayoutProps) {
@@ -147,13 +164,15 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                         <nav className="flex items-center gap-1 text-sm font-semibold text-slate-600">
                             {NAV_ITEMS.map((item) => {
                                 const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
+                                const Icon = item.icon;
                                 return (
                                     <Link
                                         key={item.id}
                                         href={item.href}
                                         data-active={active}
-                                        className="rounded-full px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-600 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-700"
+                                        className="inline-flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-600 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-700"
                                     >
+                                        <Icon className="h-4 w-4" aria-hidden />
                                         {item.label}
                                     </Link>
                                 );
@@ -184,13 +203,15 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                         <nav className="flex flex-col gap-1 text-sm font-semibold text-slate-600">
                             {NAV_ITEMS.map((item) => {
                                 const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
+                                const Icon = item.icon;
                                 return (
                                     <Link
                                         key={item.id}
                                         href={item.href}
                                         data-active={active}
-                                        className="rounded-md px-3 py-2 transition hover:bg-emerald-50 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-700"
+                                        className="inline-flex items-center gap-2 rounded-md px-3 py-2 transition hover:bg-emerald-50 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-700"
                                     >
+                                        <Icon className="h-4 w-4" aria-hidden />
                                         {item.label}
                                     </Link>
                                 );

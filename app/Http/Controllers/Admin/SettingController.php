@@ -79,7 +79,7 @@ class SettingController extends Controller
             ]);
 
             if ($request->hasFile('logo')) {
-                $logo = $this->storeMedia(
+                $logo = $this->replaceSingleton(
                     $request->file('logo'),
                     'logo',
                     'global',
@@ -102,7 +102,7 @@ class SettingController extends Controller
             }
 
             if ($request->hasFile('og_image')) {
-                $ogAsset = $this->storeMedia(
+                $ogAsset = $this->replaceSingleton(
                     $request->file('og_image'),
                     'og',
                     'global',

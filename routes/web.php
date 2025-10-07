@@ -28,6 +28,7 @@ Route::get('/vokasional/{slug}', [PubVocController::class, 'show'])->name('voc.s
 Route::get('/berita', [PubPostController::class, 'index'])->name('posts.index');
 Route::get('/berita/{slug}', [PubPostController::class, 'show'])->name('posts.show');
 Route::get('/agenda', [PubEventController::class, 'index'])->name('events.index');
+Route::get('/agenda/{slug}/ics', [PubEventController::class, 'ics'])->name('events.ics');
 Route::get('/agenda/{slug}', [PubEventController::class, 'show'])->name('events.show');
 Route::get('/galeri', [PubAlbumController::class, 'index'])->name('albums.index');
 Route::get('/galeri/{slug}', [PubAlbumController::class, 'show'])->name('albums.show');

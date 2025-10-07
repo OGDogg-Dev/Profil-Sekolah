@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Facades\SiteContent;
 use App\Http\Controllers\Controller;
 use App\Models\Album;
 use App\Models\Event;
 use App\Models\Page;
 use App\Models\Post;
-use App\Models\SiteSetting;
 use App\Models\VocationalProgram;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -17,7 +17,10 @@ class HomeController extends Controller
 {
     public function index(): Response
     {
-        $settings = SiteSetting::first();
+        $settings = [
+            'site_name' => SiteContent::getSetting('general', 'site_name'),
+            'tagline' => SiteContent::getSetting('general', 'tagline'),
+        ];
 
         $profilePage = Page::query()->where('slug', 'profil')->first(['title', 'content']);
         $profileExcerpt = $profilePage ? Str::limit(strip_tags($profilePage->content), 250) : null;

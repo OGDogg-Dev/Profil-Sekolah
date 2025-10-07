@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Facades\SiteContent;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
-use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,7 +13,7 @@ class PostController extends Controller
 {
     public function index(Request $request): Response
     {
-        $settings = SiteSetting::first();
+        $settings = $this->generalSettings();
         $posts = Post::query()
             ->published()
             ->orderByDesc('published_at')
@@ -28,7 +28,7 @@ class PostController extends Controller
 
     public function show(string $slug): Response
     {
-        $settings = SiteSetting::first();
+        $settings = $this->generalSettings();
         $post = Post::query()
             ->published()
             ->where('slug', $slug)
@@ -46,5 +46,13 @@ class PostController extends Controller
             'post' => $post,
             'related' => $related,
         ]);
+    }
+
+    private function generalSettings(): array
+    {
+        return [
+            'site_name' => SiteContent::getSetting('general', 'site_name'),
+            'tagline' => SiteContent::getSetting('general', 'tagline'),
+        ];
     }
 }

@@ -1,5 +1,3 @@
-import type { PropsWithChildren } from 'react';
-
 interface SectionHeadingProps {
     title: string;
     desc?: string;

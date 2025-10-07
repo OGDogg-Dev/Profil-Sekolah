@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { router, useForm, usePage } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/pages/admin/_layout/AdminLayout';
 
 type MediaItem = {
@@ -29,23 +29,9 @@ type VocFormProps = {
     item?: VocationalItem;
 };
 
-type FormDataType = {
-    slug: string;
-    title: string;
-    icon: string;
-    audience: string;
-    duration: string;
-    schedule: string;
-    description: string;
-    outcomes: string[];
-    facilities: string[];
-    mentors: string[];
-    photos: File[];
-};
-
 export default function VocForm({ item }: VocFormProps) {
     const isEdit = Boolean(item?.id);
-    const { data, setData, post, put } = useForm({
+    const { data, setData } = useForm({
         slug: item?.slug ?? '',
         title: item?.title ?? '',
         icon: item?.icon ?? '',
@@ -97,7 +83,7 @@ export default function VocForm({ item }: VocFormProps) {
         });
 
         console.log('FormData created with entries:');
-        for (let [key, value] of formData.entries()) {
+        for (const [key, value] of formData.entries()) {
             console.log(key, value);
         }
 

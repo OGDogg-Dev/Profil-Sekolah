@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/pages/admin/_layout/AdminLayout';
 
+type PagePropsWithErrors = {
+    errors?: Record<string, string>;
+};
+
 interface PostFormProps {
     post?: {
         id: number;
@@ -17,7 +21,7 @@ interface PostFormProps {
 
 export default function PostForm({ post }: PostFormProps) {
     const isEdit = Boolean(post?.id);
-    const { props } = usePage();
+    const { props } = usePage<PagePropsWithErrors>();
     const [form, setForm] = useState({
         title: post?.title ?? '',
         slug: post?.slug ?? '',
@@ -28,7 +32,7 @@ export default function PostForm({ post }: PostFormProps) {
         published_at: post?.published_at ? post.published_at.slice(0, 16) : '',
     });
 
-    const errors = (props as any)?.errors as Record<string, string> | undefined;
+    const errors = props.errors;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();

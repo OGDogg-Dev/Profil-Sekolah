@@ -1,496 +1,647 @@
-﻿import { FormEvent, useState } from 'react';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
-
-import { UploadDropzone } from '@/components/admin/UploadDropzone';
+import { useEffect, useState } from 'react';
+import { useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '@/pages/admin/_layout/AdminLayout';
 
-interface HighlightItem {
-  title: string;
-  description: string;
-  href?: string;
-}
+type SectionKey = 'home' | 'profil' | 'visi';
 
-interface StatItem {
-  label: string;
-  value: string;
-}
+type Highlight = {
+    icon: string;
+    title: string;
+    description: string;
+    link: string;
+};
 
-interface TestimonialItem {
-  quote: string;
-  name: string;
-  role?: string | null;
-}
+type Testimonial = {
+    name: string;
+    role: string;
+    quote: string;
+};
 
-interface MediaItem {
-  id: number;
-  collection: string;
-  key: string;
-  url: string;
-  alt?: string | null;
-  type: string;
-}
+type HeroSettings = {
+    title: string;
+    subtitle: string;
+    cta1_label: string;
+    cta1_url: string;
+    cta2_label: string;
+    cta2_url: string;
+    overlay: number;
+};
 
-interface HomeSettings {
-  hero_eyebrow: string;
-  hero_title: string;
-  hero_description: string;
-  hero_primary_label: string;
-  hero_primary_link: string;
-  hero_secondary_label: string;
-  hero_secondary_link: string;
-  highlights: HighlightItem[];
-  stats: StatItem[];
-  news_title: string;
-  news_description: string;
-  agenda_title: string;
-  agenda_description: string;
-  gallery_title: string;
-  gallery_description: string;
-  testimonials_title: string;
-  testimonials_items: TestimonialItem[];
-}
+type ContentSettings = {
+    hero?: HeroSettings & { alt?: string };
+    highlights?: Highlight[];
+    newsMode?: 'auto' | 'manual';
+    pins?: number[];
+    agendaLimit?: number;
+    galleryMode?: 'album' | 'manual';
+    galleryAlbumId?: number | string | null;
+    galleryManual?: number[];
+    stats?: {
+        students?: number;
+        teachers?: number;
+        accreditation?: string;
+        photos?: number;
+    };
+    testimonials?: Testimonial[];
+    showHighlights?: boolean;
+    showStats?: boolean;
+    showTestimonials?: boolean;
+};
 
-interface MediaSettings {
-  home: {
-    hero?: MediaItem | null;
-  };
-}
+type PageProps = {
+    section: SectionKey;
+    settings?: ContentSettings | null;
+    hero_url?: string | null;
+    flash?: { success?: string };
+    updateUrl?: string;
+    availableNews?: Array<{ id: number; title: string }>;
+    galleryAlbums?: Array<{ id: number; name: string }>;
+};
 
-interface PublicContentProps {
-  home: HomeSettings;
-  media: MediaSettings;
-  general?: Record<string, unknown>;
-  profile?: Record<string, unknown>;
-  vision?: Record<string, unknown>;
-  contact?: Record<string, unknown>;
-}
+type FormValues = {
+    section: SectionKey;
+    heroFile: File | null;
+    heroAlt: string;
+    hero: HeroSettings;
+    highlights: Highlight[];
+    showHighlights: boolean;
+    newsMode: 'auto' | 'manual';
+    pins: number[];
+    agendaLimit: number;
+    galleryMode: 'album' | 'manual';
+    galleryAlbumId: string;
+    galleryManual: string;
+    stats: {
+        students: string;
+        teachers: string;
+        accreditation: string;
+        photos: string;
+    };
+    showStats: boolean;
+    testimonials: Testimonial[];
+    showTestimonials: boolean;
+};
 
-interface SharedPageProps {
-  flash?: {
-    success?: string;
-  };
-  [key: string]: unknown;
-}
+const DEFAULT_HERO: HeroSettings = {
+    title: '',
+    subtitle: '',
+    cta1_label: '',
+    cta1_url: '',
+    cta2_label: '',
+    cta2_url: '',
+    overlay: 60,
+};
 
-export default function PublicContentEdit({ home, media }: PublicContentProps) {
-  const { props } = usePage<SharedPageProps>();
-  const flash = props?.flash;
+const buildHighlights = (initial?: Highlight[]): Highlight[] => {
+    const base = initial ?? [];
+    return Array.from({ length: 4 }).map((_, index) => base[index] ?? { icon: '', title: '', description: '', link: '' });
+};
 
-  const homeForm = useForm<HomeSettings>({
-    ...home,
-    highlights: home.highlights ?? [],
-    stats: home.stats ?? [],
-    testimonials_items: home.testimonials_items ?? [],
-    news_description: home.news_description ?? '',
-    agenda_description: home.agenda_description ?? '',
-    gallery_description: home.gallery_description ?? '',
-  });
-
-  const [heroFile, setHeroFile] = useState<File | null>(null);
-  const [heroAlt, setHeroAlt] = useState(media.home.hero?.alt ?? '');
-
-  const submitHome = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    homeForm.transform((data) => ({ section: 'home', data }));
-    homeForm.post('/admin/public-content', {
-      preserveScroll: true,
-      onFinish: () => homeForm.transform((data) => data),
-    });
-  };
-
-  const uploadHero = () => {
-    if (!heroFile) {
-      return;
+const buildTestimonials = (initial?: Testimonial[]): Testimonial[] => {
+    if (!initial || initial.length === 0) {
+        return [
+            {
+                name: '',
+                role: '',
+                quote: '',
+            },
+        ];
     }
 
-    const payload = {
-      collection: 'home',
-      key: 'hero',
-      file: heroFile,
-      alt: heroAlt,
+    return initial;
+};
+
+function Toast({ message }: { message: string }) {
+    return (
+        <div className="fixed bottom-6 right-6 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl dark:bg-emerald-500">
+            {message}
+        </div>
+    );
+}
+
+export default function ContentEdit() {
+    const { props } = usePage<PageProps>();
+    const section = props.section;
+    const settings = props.settings ?? {};
+    const availableNews = props.availableNews ?? [];
+    const albums = props.galleryAlbums ?? [];
+
+    const [toastMessage, setToastMessage] = useState<string | null>(props.flash?.success ?? null);
+    const [heroPreview, setHeroPreview] = useState<string | null>(props.hero_url ?? null);
+    const [heroWarning, setHeroWarning] = useState<string | null>(null);
+
+    const { data, setData, post, processing, errors, reset } = useForm<FormValues>({
+        section,
+        heroFile: null,
+        heroAlt: settings.hero?.alt ?? '',
+        hero: {
+            title: settings.hero?.title ?? DEFAULT_HERO.title,
+            subtitle: settings.hero?.subtitle ?? DEFAULT_HERO.subtitle,
+            cta1_label: settings.hero?.cta1_label ?? DEFAULT_HERO.cta1_label,
+            cta1_url: settings.hero?.cta1_url ?? DEFAULT_HERO.cta1_url,
+            cta2_label: settings.hero?.cta2_label ?? DEFAULT_HERO.cta2_label,
+            cta2_url: settings.hero?.cta2_url ?? DEFAULT_HERO.cta2_url,
+            overlay: settings.hero?.overlay ?? DEFAULT_HERO.overlay,
+        },
+        highlights: buildHighlights(settings.highlights),
+        showHighlights: settings.showHighlights ?? true,
+        newsMode: settings.newsMode ?? 'auto',
+        pins: settings.pins ?? [],
+        agendaLimit: settings.agendaLimit ?? 3,
+        galleryMode: settings.galleryMode ?? 'album',
+        galleryAlbumId: settings.galleryAlbumId ? String(settings.galleryAlbumId) : '',
+        galleryManual: settings.galleryManual?.join(', ') ?? '',
+        stats: {
+            students: settings.stats?.students != null ? String(settings.stats.students) : '',
+            teachers: settings.stats?.teachers != null ? String(settings.stats.teachers) : '',
+            accreditation: settings.stats?.accreditation ?? '',
+            photos: settings.stats?.photos != null ? String(settings.stats.photos) : '',
+        },
+        showStats: settings.showStats ?? true,
+        testimonials: buildTestimonials(settings.testimonials),
+        showTestimonials: settings.showTestimonials ?? true,
+    });
+
+    const actionUrl = props.updateUrl ?? `/admin/content/${section}`;
+
+    useEffect(() => {
+        if (props.flash?.success) {
+            setToastMessage(props.flash.success);
+            const timeout = setTimeout(() => setToastMessage(null), 3500);
+            return () => clearTimeout(timeout);
+        }
+
+        return undefined;
+    }, [props.flash?.success]);
+
+    useEffect(
+        () => () => {
+            if (heroPreview && heroPreview.startsWith('blob:')) {
+                URL.revokeObjectURL(heroPreview);
+            }
+        },
+        [heroPreview],
+    );
+
+    const showToast = (message: string) => {
+        setToastMessage(message);
+        setTimeout(() => setToastMessage(null), 3500);
     };
 
-    router.post('/admin/public-content/media', payload, {
-      forceFormData: true,
-      preserveScroll: true,
-      onSuccess: () => {
-        setHeroFile(null);
-      },
-    });
-  };
+    const handleHeroChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        setData('heroFile', file);
 
-  const removeHero = () => {
-    router.delete('/admin/public-content/media', {
-      preserveScroll: true,
-      data: {
-        collection: 'home',
-        key: 'hero',
-      },
-      onSuccess: () => {
-        setHeroFile(null);
-        setHeroAlt('');
-      },
-    });
-  };
+        if (!file) {
+            if (heroPreview && heroPreview.startsWith('blob:')) {
+                URL.revokeObjectURL(heroPreview);
+            }
+            setHeroPreview(props.hero_url ?? null);
+            setHeroWarning(null);
+            return;
+        }
 
-  const addHighlight = () => {
-    homeForm.setData('highlights', [
-      ...homeForm.data.highlights,
-      { title: '', description: '', href: '' },
-    ]);
-  };
+        const previewUrl = URL.createObjectURL(file);
+        setHeroPreview(previewUrl);
 
-  const updateHighlight = (index: number, field: keyof HighlightItem, value: string) => {
-    const next = [...homeForm.data.highlights];
-    next[index] = { ...next[index], [field]: value };
-    homeForm.setData('highlights', next);
-  };
+        const image = new Image();
+        image.onload = () => {
+            if (image.width < 1600 || image.height < 900) {
+                setHeroWarning('Resolusi hero minimal 1600x900 piksel. Unggah ulang untuk hasil terbaik.');
+            } else {
+                setHeroWarning(null);
+            }
+        };
+        image.src = previewUrl;
+    };
 
-  const removeHighlight = (index: number) => {
-    const next = [...homeForm.data.highlights];
-    next.splice(index, 1);
-    homeForm.setData('highlights', next);
-  };
+    const updateHighlight = (index: number, key: keyof Highlight, value: string) => {
+        const next = [...data.highlights];
+        next[index] = { ...next[index], [key]: value };
+        setData('highlights', next);
+    };
 
-  const addStat = () => {
-    homeForm.setData('stats', [...homeForm.data.stats, { label: '', value: '' }]);
-  };
+    const addTestimonial = () => {
+        setData('testimonials', [...data.testimonials, { name: '', role: '', quote: '' }]);
+    };
 
-  const updateStat = (index: number, field: keyof StatItem, value: string) => {
-    const next = [...homeForm.data.stats];
-    next[index] = { ...next[index], [field]: value };
-    homeForm.setData('stats', next);
-  };
+    const updateTestimonial = (index: number, key: keyof Testimonial, value: string) => {
+        const next = [...data.testimonials];
+        next[index] = { ...next[index], [key]: value };
+        setData('testimonials', next);
+    };
 
-  const removeStat = (index: number) => {
-    const next = [...homeForm.data.stats];
-    next.splice(index, 1);
-    homeForm.setData('stats', next);
-  };
+    const removeTestimonial = (index: number) => {
+        const next = data.testimonials.filter((_, idx) => idx !== index);
+        setData('testimonials', next.length > 0 ? next : [{ name: '', role: '', quote: '' }]);
+    };
 
-  const addTestimonial = () => {
-    homeForm.setData('testimonials_items', [
-      ...homeForm.data.testimonials_items,
-      { quote: '', name: '', role: '' },
-    ]);
-  };
+    const togglePin = (id: number) => {
+        if (data.pins.includes(id)) {
+            setData('pins', data.pins.filter((pin) => pin !== id));
+        } else {
+            setData('pins', [...data.pins, id]);
+        }
+    };
 
-  const updateTestimonial = (index: number, field: keyof TestimonialItem, value: string) => {
-    const next = [...homeForm.data.testimonials_items];
-    next[index] = { ...next[index], [field]: value };
-    homeForm.setData('testimonials_items', next);
-  };
+    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
 
-  const removeTestimonial = (index: number) => {
-    const next = [...homeForm.data.testimonials_items];
-    next.splice(index, 1);
-    homeForm.setData('testimonials_items', next);
-  };
+        const payload: Record<string, unknown> = {
+            section: data.section,
+            hero: data.hero,
+            hero_alt: data.heroAlt,
+            showHighlights: data.showHighlights,
+            highlights: data.highlights,
+            newsMode: data.newsMode,
+            pins: data.pins,
+            agendaLimit: data.agendaLimit,
+            galleryMode: data.galleryMode,
+            galleryAlbumId: data.galleryAlbumId || null,
+            galleryManual: data.galleryManual
+                .split(',')
+                .map((entry) => entry.trim())
+                .filter(Boolean)
+                .map((entry) => Number(entry)),
+            stats: {
+                students: data.stats.students ? Number(data.stats.students) : null,
+                teachers: data.stats.teachers ? Number(data.stats.teachers) : null,
+                accreditation: data.stats.accreditation,
+                photos: data.stats.photos ? Number(data.stats.photos) : null,
+            },
+            showStats: data.showStats,
+            testimonials: data.testimonials,
+            showTestimonials: data.showTestimonials,
+        };
 
-  return (
-    <AdminLayout title="Konten Halaman Publik">
-      <Head title="Konten Publik" />
+        if (data.heroFile) {
+            payload.hero_media = data.heroFile;
+        }
 
-      {flash?.success ? (
-        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {flash.success}
-        </div>
-      ) : null}
+        post(actionUrl, {
+            data: payload,
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                showToast('Konten berhasil disimpan.');
+                if (!data.heroFile) {
+                    return;
+                }
+                reset('heroFile');
+            },
+        });
+    };
 
-      <section className="space-y-8">
-        <article className="rounded-2xl border bg-white p-6 shadow-sm">
-          <header className="mb-6">
-            <h2 className="text-lg font-semibold text-slate-900">Halaman Beranda</h2>
-            <p className="text-sm text-slate-500">Kelola konten hero, highlight, statistik, dan testimoni yang tampil di beranda.</p>
-          </header>
+    const isHome = section === 'home';
 
-          <form onSubmit={submitHome} className="space-y-8">
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label="Hero Eyebrow"
-                value={homeForm.data.hero_eyebrow}
-                onChange={(value) => homeForm.setData('hero_eyebrow', value)}
-              />
-              <TextField
-                label="Hero Title"
-                value={homeForm.data.hero_title}
-                onChange={(value) => homeForm.setData('hero_title', value)}
-              />
-              <TextAreaField
-                label="Hero Description"
-                value={homeForm.data.hero_description}
-                onChange={(value) => homeForm.setData('hero_description', value)}
-                rows={3}
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextField
-                  label="Tombol Utama (label)"
-                  value={homeForm.data.hero_primary_label}
-                  onChange={(value) => homeForm.setData('hero_primary_label', value)}
-                />
-                <TextField
-                  label="Tombol Utama (link)"
-                  value={homeForm.data.hero_primary_link}
-                  onChange={(value) => homeForm.setData('hero_primary_link', value)}
-                />
-                <TextField
-                  label="Tombol Sekunder (label)"
-                  value={homeForm.data.hero_secondary_label}
-                  onChange={(value) => homeForm.setData('hero_secondary_label', value)}
-                />
-                <TextField
-                  label="Tombol Sekunder (link)"
-                  value={homeForm.data.hero_secondary_link}
-                  onChange={(value) => homeForm.setData('hero_secondary_link', value)}
-                />
-              </div>
-            </div>
+    return (
+        <AdminLayout title={`Pengaturan Konten: ${section === 'home' ? 'Beranda' : section === 'profil' ? 'Profil' : 'Visi & Misi'}`}>
+            <form onSubmit={submit} className="mx-auto flex w-full max-w-5xl flex-col gap-6" encType="multipart/form-data">
+                <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                    <div className="mb-4 flex flex-col gap-2">
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Hero Section</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Unggah hero berdimensi 16:9 minimal 1600x900 dan atur teks serta CTA.</p>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-[minmax(0,320px)_1fr]">
+                        <div className="space-y-3">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="hero">Gambar Hero</label>
+                            <input
+                                id="hero"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleHeroChange}
+                                className="block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:file:bg-slate-700"
+                            />
+                            {heroWarning ? <p className="text-xs text-amber-500">{heroWarning}</p> : null}
+                            {errors.hero_media ? <p className="text-xs text-rose-500">{errors.hero_media}</p> : null}
+                            <input
+                                value={data.heroAlt}
+                                onChange={(event) => setData('heroAlt', event.target.value)}
+                                placeholder="Teks alternatif hero"
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                            />
+                            {errors.hero_alt ? <p className="text-xs text-rose-500">{errors.hero_alt}</p> : null}
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Overlay</label>
+                            <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={data.hero.overlay}
+                                onChange={(event) => setData('hero', { ...data.hero, overlay: Number(event.target.value) })}
+                            />
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Overlay: {data.hero.overlay}%</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Pratinjau Hero</p>
+                                <div className="mt-3 h-48 overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-800">
+                                    {heroPreview ? (
+                                        <img src={heroPreview} alt="Hero preview" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Belum ada gambar hero.</div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <input
+                                    value={data.hero.title}
+                                    onChange={(event) => setData('hero', { ...data.hero, title: event.target.value })}
+                                    placeholder="Judul hero"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                />
+                                <textarea
+                                    value={data.hero.subtitle}
+                                    onChange={(event) => setData('hero', { ...data.hero, subtitle: event.target.value })}
+                                    rows={3}
+                                    placeholder="Subjudul hero"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                />
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <input
+                                            value={data.hero.cta1_label}
+                                            onChange={(event) => setData('hero', { ...data.hero, cta1_label: event.target.value })}
+                                            placeholder="Label CTA 1"
+                                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                        />
+                                        <input
+                                            value={data.hero.cta1_url}
+                                            onChange={(event) => setData('hero', { ...data.hero, cta1_url: event.target.value })}
+                                            placeholder="https://..."
+                                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <input
+                                            value={data.hero.cta2_label}
+                                            onChange={(event) => setData('hero', { ...data.hero, cta2_label: event.target.value })}
+                                            placeholder="Label CTA 2"
+                                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                        />
+                                        <input
+                                            value={data.hero.cta2_url}
+                                            onChange={(event) => setData('hero', { ...data.hero, cta2_url: event.target.value })}
+                                            placeholder="https://..."
+                                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-900">Media Hero</h3>
-              <UploadDropzone
-                label="File Hero"
-                description="Format JPG/PNG/WEBP, maksimal 5MB."
-                file={heroFile}
-                existingUrl={!heroFile ? media.home.hero?.url ?? null : null}
-                onSelect={setHeroFile}
-              />
-              <TextField
-                label="Hero Alt Text"
-                value={heroAlt}
-                onChange={setHeroAlt}
-                helperText="Deskripsi singkat untuk pembaca layar."
-              />
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={uploadHero}
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-                  disabled={!heroFile}
-                >
-                  Unggah Media
-                </button>
-                {media.home.hero ? (
-                  <button
-                    type="button"
-                    onClick={removeHero}
-                    className="rounded-xl border px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                  >
-                    Hapus Media
-                  </button>
+                {isHome ? (
+                    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                        <div className="mb-4 flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Sorotan &amp; Statistik</h2>
+                                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.showHighlights}
+                                        onChange={(event) => setData('showHighlights', event.target.checked)}
+                                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                                    />
+                                    Tampilkan sorotan
+                                </label>
+                            </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Isi sorotan utama untuk menjelaskan keunggulan sekolah secara singkat.</p>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {data.highlights.map((highlight, index) => (
+                                <div key={`highlight-${index}`} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Sorotan {index + 1}</h3>
+                                        <span className="text-xs text-slate-400">Icon library (mis. lucide)</span>
+                                    </div>
+                                    <input
+                                        value={highlight.icon}
+                                        onChange={(event) => updateHighlight(index, 'icon', event.target.value)}
+                                        placeholder="Nama ikon"
+                                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                    />
+                                    <input
+                                        value={highlight.title}
+                                        onChange={(event) => updateHighlight(index, 'title', event.target.value)}
+                                        placeholder="Judul singkat"
+                                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                    />
+                                    <textarea
+                                        value={highlight.description}
+                                        onChange={(event) => updateHighlight(index, 'description', event.target.value)}
+                                        rows={3}
+                                        placeholder="Deskripsi singkat"
+                                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                    />
+                                    <input
+                                        value={highlight.link}
+                                        onChange={(event) => updateHighlight(index, 'link', event.target.value)}
+                                        placeholder="https://..."
+                                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Statistik</h3>
+                                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.showStats}
+                                        onChange={(event) => setData('showStats', event.target.checked)}
+                                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                                    />
+                                    Tampilkan statistik
+                                </label>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-4">
+                                <input
+                                    value={data.stats.students}
+                                    onChange={(event) => setData('stats', { ...data.stats, students: event.target.value })}
+                                    placeholder="Siswa"
+                                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                />
+                                <input
+                                    value={data.stats.teachers}
+                                    onChange={(event) => setData('stats', { ...data.stats, teachers: event.target.value })}
+                                    placeholder="Guru"
+                                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                />
+                                <input
+                                    value={data.stats.accreditation}
+                                    onChange={(event) => setData('stats', { ...data.stats, accreditation: event.target.value })}
+                                    placeholder="Akreditasi"
+                                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                />
+                                <input
+                                    value={data.stats.photos}
+                                    onChange={(event) => setData('stats', { ...data.stats, photos: event.target.value })}
+                                    placeholder="Dokumentasi"
+                                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Berita Sorotan</h3>
+                                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.newsMode === 'manual'}
+                                        onChange={(event) => setData('newsMode', event.target.checked ? 'manual' : 'auto')}
+                                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                                    />
+                                    Gunakan pilihan manual
+                                </label>
+                            </div>
+                            {data.newsMode === 'manual' ? (
+                                <div className="grid gap-2">
+                                    {availableNews.length === 0 ? (
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Belum ada berita untuk dipilih.</p>
+                                    ) : (
+                                        availableNews.map((news) => (
+                                            <label key={news.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={data.pins.includes(news.id)}
+                                                    onChange={() => togglePin(news.id)}
+                                                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                                                />
+                                                {news.title}
+                                            </label>
+                                        ))
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Mode otomatis akan menampilkan berita terbaru secara dinamis.</p>
+                            )}
+                        </div>
+
+                        <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
+                            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Agenda &amp; Galeri</h3>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-300">Jumlah agenda yang tampil</label>
+                            <input
+                                type="number"
+                                min={1}
+                                value={data.agendaLimit}
+                                onChange={(event) => setData('agendaLimit', Number(event.target.value) || 1)}
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                            />
+                            <div className="grid gap-2">
+                                <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Sumber galeri</label>
+                                <select
+                                    value={data.galleryMode}
+                                    onChange={(event) => setData('galleryMode', event.target.value as 'album' | 'manual')}
+                                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                >
+                                    <option value="album">Gunakan album</option>
+                                    <option value="manual">Manual (ID media)</option>
+                                </select>
+                            </div>
+                            {data.galleryMode === 'album' ? (
+                                <select
+                                    value={data.galleryAlbumId}
+                                    onChange={(event) => setData('galleryAlbumId', event.target.value)}
+                                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                >
+                                    <option value="">Pilih album</option>
+                                    {albums.map((album) => (
+                                        <option key={album.id} value={album.id}>
+                                            {album.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <textarea
+                                    value={data.galleryManual}
+                                    onChange={(event) => setData('galleryManual', event.target.value)}
+                                    rows={3}
+                                    placeholder="Masukkan ID media dipisahkan koma"
+                                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                />
+                            )}
+                        </div>
+
+                        <div className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Testimoni</h3>
+                                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.showTestimonials}
+                                        onChange={(event) => setData('showTestimonials', event.target.checked)}
+                                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                                    />
+                                    Tampilkan testimoni
+                                </label>
+                            </div>
+                            <div className="space-y-3">
+                                {data.testimonials.map((testimonial, index) => (
+                                    <div key={`testimonial-${index}`} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-600 dark:bg-slate-800">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Testimoni {index + 1}</h4>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeTestimonial(index)}
+                                                className="text-xs font-semibold text-rose-500 hover:text-rose-400"
+                                            >
+                                                Hapus
+                                            </button>
+                                        </div>
+                                        <input
+                                            value={testimonial.name}
+                                            onChange={(event) => updateTestimonial(index, 'name', event.target.value)}
+                                            placeholder="Nama narasumber"
+                                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                        />
+                                        <input
+                                            value={testimonial.role}
+                                            onChange={(event) => updateTestimonial(index, 'role', event.target.value)}
+                                            placeholder="Peran/relasi"
+                                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                        />
+                                        <textarea
+                                            value={testimonial.quote}
+                                            onChange={(event) => updateTestimonial(index, 'quote', event.target.value)}
+                                            rows={3}
+                                            placeholder="Isi testimoni"
+                                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={addTestimonial}
+                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200"
+                            >
+                                Tambah Testimoni
+                            </button>
+                        </div>
+                    </section>
                 ) : null}
-              </div>
-            </div>
 
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900">Highlight</h3>
-                <button type="button" onClick={addHighlight} className="text-sm text-slate-600 hover:text-slate-900">
-                  + Tambah Highlight
-                </button>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {homeForm.data.highlights.map((item, index) => (
-                  <div key={`highlight-${index}`} className="space-y-3 rounded-xl border p-4">
-                    <TextField
-                      label="Judul"
-                      value={item.title}
-                      onChange={(value) => updateHighlight(index, 'title', value)}
-                    />
-                    <TextAreaField
-                      label="Deskripsi"
-                      value={item.description}
-                      onChange={(value) => updateHighlight(index, 'description', value)}
-                      rows={2}
-                    />
-                    <TextField
-                      label="Link (opsional)"
-                      value={item.href ?? ''}
-                      onChange={(value) => updateHighlight(index, 'href', value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeHighlight(index)}
-                      className="text-xs text-red-500 hover:text-red-700"
+                <div className="flex items-center justify-end gap-2">
+                    <a
+                        href="/admin/pages"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                     >
-                      Hapus Highlight
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900">Statistik</h3>
-                <button type="button" onClick={addStat} className="text-sm text-slate-600 hover:text-slate-900">
-                  + Tambah Statistik
-                </button>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {homeForm.data.stats.map((item, index) => (
-                  <div key={`stat-${index}`} className="space-y-3 rounded-xl border p-4">
-                    <TextField
-                      label="Label"
-                      value={item.label}
-                      onChange={(value) => updateStat(index, 'label', value)}
-                    />
-                    <TextField
-                      label="Nilai"
-                      value={item.value}
-                      onChange={(value) => updateStat(index, 'value', value)}
-                    />
+                        Batal
+                    </a>
                     <button
-                      type="button"
-                      onClick={() => removeStat(index)}
-                      className="text-xs text-red-500 hover:text-red-700"
+                        type="submit"
+                        disabled={processing}
+                        className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
                     >
-                      Hapus Statistik
+                        {processing ? 'Menyimpan...' : 'Simpan'}
                     </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900">Testimoni</h3>
-                <button type="button" onClick={addTestimonial} className="text-sm text-slate-600 hover:text-slate-900">
-                  + Tambah Testimoni
-                </button>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {homeForm.data.testimonials_items.map((item, index) => (
-                  <div key={`testimonial-${index}`} className="space-y-3 rounded-xl border p-4">
-                    <TextAreaField
-                      label="Kutipan"
-                      value={item.quote}
-                      onChange={(value) => updateTestimonial(index, 'quote', value)}
-                      rows={3}
-                    />
-                    <TextField
-                      label="Nama"
-                      value={item.name}
-                      onChange={(value) => updateTestimonial(index, 'name', value)}
-                    />
-                    <TextField
-                      label="Peran"
-                      value={item.role ?? ''}
-                      onChange={(value) => updateTestimonial(index, 'role', value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeTestimonial(index)}
-                      className="text-xs text-red-500 hover:text-red-700"
-                    >
-                      Hapus Testimoni
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <TextField
-                label="Judul Seksi Berita"
-                value={homeForm.data.news_title}
-                onChange={(value) => homeForm.setData('news_title', value)}
-              />
-              <TextField
-                label="Judul Seksi Agenda"
-                value={homeForm.data.agenda_title}
-                onChange={(value) => homeForm.setData('agenda_title', value)}
-              />
-              <TextField
-                label="Judul Seksi Galeri"
-                value={homeForm.data.gallery_title}
-                onChange={(value) => homeForm.setData('gallery_title', value)}
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <TextAreaField
-                label="Deskripsi Berita"
-                value={homeForm.data.news_description}
-                onChange={(value) => homeForm.setData('news_description', value)}
-                rows={2}
-              />
-              <TextAreaField
-                label="Deskripsi Agenda"
-                value={homeForm.data.agenda_description}
-                onChange={(value) => homeForm.setData('agenda_description', value)}
-                rows={2}
-              />
-              <TextAreaField
-                label="Deskripsi Galeri"
-                value={homeForm.data.gallery_description}
-                onChange={(value) => homeForm.setData('gallery_description', value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="submit"
-                className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
-                disabled={homeForm.processing}
-              >
-                Simpan Beranda
-              </button>
-            </div>
-          </form>
-        </article>
-      </section>
-    </AdminLayout>
-  );
+                </div>
+            </form>
+            {toastMessage ? <Toast message={toastMessage} /> : null}
+        </AdminLayout>
+    );
 }
-
-type TextFieldProps = {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
-  type?: string;
-  helperText?: string;
-};
-
-function TextField({ label, value, onChange, error, type = 'text', helperText }: TextFieldProps) {
-  return (
-    <label className="flex flex-col gap-1 text-sm text-slate-700">
-      <span className="font-medium text-slate-900">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="rounded-lg border px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
-      />
-      {helperText ? <span className="text-xs text-slate-500">{helperText}</span> : null}
-      {error ? <span className="text-xs text-red-500">{error}</span> : null}
-    </label>
-  );
-}
-
-type TextAreaFieldProps = {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  rows?: number;
-  error?: string;
-};
-
-function TextAreaField({ label, value, onChange, rows = 4, error }: TextAreaFieldProps) {
-  return (
-    <label className="flex flex-col gap-1 text-sm text-slate-700">
-      <span className="font-medium text-slate-900">{label}</span>
-      <textarea
-        value={value}
-        rows={rows}
-        onChange={(event) => onChange(event.target.value)}
-        className="rounded-lg border px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
-      />
-      {error ? <span className="text-xs text-red-500">{error}</span> : null}
-    </label>
-  );
-}
-
-

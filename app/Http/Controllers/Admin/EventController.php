@@ -55,7 +55,14 @@ class EventController extends Controller
             $event = Event::create($payload);
 
             if ($coverFile) {
-                $this->replaceSingleton($coverFile, 'cover', (string) $event->id, $this->normaliseAlt($coverAlt));
+                $asset = $this->replaceSingleton(
+                    $coverFile,
+                    'cover',
+                    (string) $event->id,
+                    $this->normaliseAlt($coverAlt)
+                );
+
+                $event->update(['cover_url' => $asset->path]);
             }
         });
 
@@ -102,7 +109,8 @@ class EventController extends Controller
             }
 
             if ($coverFile) {
-                $this->replaceSingleton($coverFile, 'cover', (string) $event->id, $coverAlt);
+                $asset = $this->replaceSingleton($coverFile, 'cover', (string) $event->id, $coverAlt);
+                $event->update(['cover_url' => $asset->path]);
             } elseif ($existingAsset && $altProvided) {
                 $existingAsset->update(['alt' => $coverAlt]);
             }

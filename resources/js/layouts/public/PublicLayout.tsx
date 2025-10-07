@@ -113,7 +113,6 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                             )}
                         </span>
                         <div className="flex flex-col">
-                            <span className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Profil Sekolah</span>
                             <span className="text-lg font-semibold text-slate-900">{resolvedSiteName}</span>
                             <span className="text-xs text-slate-500">{resolvedTagline}</span>
                         </div>

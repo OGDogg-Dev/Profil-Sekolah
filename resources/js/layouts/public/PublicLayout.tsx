@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Mail, MapPin, Menu, Phone, Rss, Search, X } from 'lucide-react';
+import { Mail, MapPin, Menu, Phone, Rss, X } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
 interface PublicLayoutProps {
@@ -83,55 +83,68 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
 
     return (
         <div className="min-h-screen bg-slate-100 text-slate-800">
-            <header className="shadow-sm">
-                <div className="border-b border-white/10 bg-slate-900 text-white">
-                    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 md:flex-row md:items-center md:justify-between">
-                        <Link href="/" className="flex items-center gap-4" aria-label={`Beranda ${resolvedSiteName}`}>
-                            <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-white shadow-lg">
-                                {logoUrl ? (
-                                    <img src={logoUrl} alt={`Logo ${resolvedSiteName}`} className="h-full w-full object-contain" />
-                                ) : (
-                                    <span className="text-xl font-bold text-slate-900">{resolvedSiteName.slice(0, 1)}</span>
-                                )}
-                            </span>
-                            <div>
-                                <p className="text-lg font-semibold uppercase tracking-[0.12em]">{resolvedSiteName}</p>
-                                <p className="text-[13px] font-medium text-white/80">{resolvedTagline}</p>
-                            </div>
-                        </Link>
-                        <div className="flex flex-1 flex-col gap-3 text-sm text-white/80 md:flex-row md:items-center md:justify-end md:gap-6">
-                            {phone ? (
-                                <span className="inline-flex items-center gap-2"><Phone className="h-4 w-4" aria-hidden />{phone}</span>
+            <header className="border-b border-slate-200 bg-white">
+                <div className="border-b border-slate-200/80 bg-slate-900 text-white">
+                    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                            {address ? (
+                                <span className="inline-flex items-center gap-2 text-white/80">
+                                    <MapPin className="h-4 w-4" aria-hidden />
+                                    {address}
+                                </span>
                             ) : null}
                             {email ? (
-                                <span className="inline-flex items-center gap-2"><Mail className="h-4 w-4" aria-hidden />{email}</span>
+                                <a href={`mailto:${email}`} className="inline-flex items-center gap-2 text-white/80 hover:text-white">
+                                    <Mail className="h-4 w-4" aria-hidden />
+                                    {email}
+                                </a>
                             ) : null}
+                            {phone ? (
+                                <a href={`tel:${phone.replace(/\s+/g, '')}`} className="inline-flex items-center gap-2 text-white/80 hover:text-white">
+                                    <Phone className="h-4 w-4" aria-hidden />
+                                    {phone}
+                                </a>
+                            ) : null}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/70">
                             {socialLinks.length > 0 ? (
                                 <nav aria-label="Media sosial" className="flex flex-wrap items-center gap-2">
                                     {socialLinks.map((link, index) => (
                                         <Link
                                             key={`${link.url}-${index}`}
                                             href={link.url ?? '#'}
-                                            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white/80 transition hover:bg-white/20 hover:text-white"
+                                            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-semibold transition hover:bg-white/20 hover:text-white"
                                         >
                                             {link.label ?? 'Sosial'}
                                         </Link>
                                     ))}
                                 </nav>
                             ) : null}
-                            <Link
-                                href="#rss"
-                                className="inline-flex items-center gap-1 uppercase tracking-[0.2em] text-white/70 transition hover:text-white"
-                            >
-                                <Rss className="h-4 w-4" /> RSS
+                            <Link href="#rss" className="inline-flex items-center gap-1 hover:text-white">
+                                <Rss className="h-4 w-4" />
+                                RSS
                             </Link>
                         </div>
                     </div>
                 </div>
 
-                <div className="border-t border-slate-900/10 bg-slate-800 text-white">
-                    <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-                        <nav className="hidden flex-1 items-center gap-1 text-[13px] font-semibold uppercase tracking-[0.2em] md:flex">
+                <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
+                    <Link href="/" className="flex items-center gap-3" aria-label={`Beranda ${resolvedSiteName}`}>
+                        <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30">
+                            {logoUrl ? (
+                                <img src={logoUrl} alt={`Logo ${resolvedSiteName}`} className="h-full w-full object-contain" />
+                            ) : (
+                                <span className="text-lg font-semibold text-emerald-600">{resolvedSiteName.slice(0, 1)}</span>
+                            )}
+                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Profil Sekolah</span>
+                            <span className="text-lg font-semibold text-slate-900">{resolvedSiteName}</span>
+                            <span className="text-xs text-slate-500">{resolvedTagline}</span>
+                        </div>
+                    </Link>
+                    <div className="hidden items-center gap-8 md:flex">
+                        <nav className="flex items-center gap-1 text-sm font-semibold text-slate-600">
                             {NAV_ITEMS.map((item) => {
                                 const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
                                 return (
@@ -139,54 +152,58 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                                         key={item.id}
                                         href={item.href}
                                         data-active={active}
-                                        className="rounded-md px-3 py-2 transition hover:bg-white/15 data-[active=true]:bg-white data-[active=true]:text-slate-900"
+                                        className="rounded-full px-3 py-2 transition hover:bg-emerald-50 hover:text-emerald-600 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-700"
                                     >
                                         {item.label}
                                     </Link>
                                 );
                             })}
                         </nav>
-                        <div className="hidden items-center gap-3 md:flex">
-                            <form className="relative">
-                                <input
-                                    type="search"
-                                    placeholder="Pencarian..."
-                                    className="h-9 rounded-full border border-white/40 bg-white/20 px-9 text-xs font-medium text-white placeholder:text-white/70 focus:border-white focus:bg-white/30 focus:outline-none"
-                                />
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/80" aria-hidden />
-                            </form>
+                        <div className="flex items-center gap-3">
                             <ThemeToggle />
+                            <Link
+                                href="/hubungi-kami"
+                                className="inline-flex items-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                            >
+                                Hubungi Kami
+                            </Link>
                         </div>
-                        <button
-                            type="button"
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-white/30 bg-white/10 md:hidden"
-                            onClick={() => setMobileOpen((prev) => !prev)}
-                            aria-expanded={mobileOpen}
-                            aria-controls="public-mobile-nav"
-                        >
-                            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                        </button>
                     </div>
-                    {mobileOpen ? (
-                        <div id="public-mobile-nav" className="border-t border-white/20 bg-slate-800 px-4 py-3 text-sm">
-                            <nav className="space-y-1">
-                                {NAV_ITEMS.map((item) => {
-                                    const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
-                                    return (
-                                        <Link
-                                            key={item.id}
-                                            href={item.href}
-                                            data-active={active}
-                                            className="block rounded-md px-3 py-2 font-semibold uppercase tracking-[0.2em] transition hover:bg-white/10 data-[active=true]:bg-white data-[active=true]:text-slate-900"
-                                        >
-                                            {item.label}
-                                        </Link>
-                                    );
-                                })}
-                            </nav>
-                        </div>
-                    ) : null}
+                    <button
+                        type="button"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 md:hidden"
+                        onClick={() => setMobileOpen((prev) => !prev)}
+                        aria-expanded={mobileOpen}
+                        aria-controls="public-mobile-nav"
+                    >
+                        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                    </button>
                 </div>
+                {mobileOpen ? (
+                    <div id="public-mobile-nav" className="border-t border-slate-200 bg-white px-4 pb-4">
+                        <nav className="flex flex-col gap-1 text-sm font-semibold text-slate-600">
+                            {NAV_ITEMS.map((item) => {
+                                const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
+                                return (
+                                    <Link
+                                        key={item.id}
+                                        href={item.href}
+                                        data-active={active}
+                                        className="rounded-md px-3 py-2 transition hover:bg-emerald-50 data-[active=true]:bg-emerald-100 data-[active=true]:text-emerald-700"
+                                    >
+                                        {item.label}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                        <Link
+                            href="/hubungi-kami"
+                            className="mt-4 inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                        >
+                            Hubungi Kami
+                        </Link>
+                    </div>
+                ) : null}
             </header>
 
             <main id="main-content" className="bg-white">

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class MediaAsset extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'collection',
         'key',
@@ -13,10 +16,7 @@ class MediaAsset extends Model
         'path',
         'type',
         'alt',
-        'meta',
-    ];
-
-    protected $casts = [
-        'meta' => 'array',
+        'focal_x',
+        'focal_y',
     ];
 }

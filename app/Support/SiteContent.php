@@ -1,128 +1,171 @@
 <?php
+
 namespace App\Support;
 
 use App\Models\MediaAsset;
-use App\Models\SiteContentEntry;
-use App\Models\SiteSetting;
-use Illuminate\Support\Arr;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
+use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class SiteContent
 {
-    protected static array $settingsCache = [];
-    protected static array $mediaCache = [];
+    private const CACHE_KEY_FORMAT = 'site:set:%s:%s';
 
-    public static function get(string $key, mixed $default = null, string $section = 'general'): mixed
-    {
-        $settings = self::settingsForSection($section);
-
-        return $settings[$key] ?? $default;
+    public function __construct(
+        private readonly ConnectionInterface $connection,
+        private readonly CacheRepository $cache,
+        private readonly FilesystemFactory $storage
+    ) {
     }
 
-    public static function getJson(string $key, array $default = [], string $section = 'general'): array
+    /**
+     * Retrieve a structured site setting value with caching.
+     */
+    public function getSetting(string $section, string $key, mixed $default = null): mixed
     {
-        $value = self::get($key, null, $section);
+        $cacheKey = sprintf(self::CACHE_KEY_FORMAT, $section, $key);
 
-        if (is_array($value)) {
-            return $value;
-        }
-
-        if (is_string($value) && trim($value) !== '') {
-            $decoded = json_decode($value, true);
-
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $decoded;
-            }
-        }
-
-        return $default;
-    }
-
-    public static function section(string $section, array $defaults = []): array
-    {
-        $settings = self::settingsForSection($section);
-
-        if (empty($settings)) {
-            return $defaults;
-        }
-
-        return array_replace_recursive($defaults, $settings);
-    }
-
-    public static function media(string $key, string $collection = 'general'): ?MediaAsset
-    {
-        $media = self::mediaForCollection($collection);
-
-        return $media[$key] ?? null;
-    }
-
-    public static function clearCache(): void
-    {
-        self::$settingsCache = [];
-        self::$mediaCache = [];
-    }
-
-    protected static function settingsForSection(string $section): array
-    {
-        if (! isset(self::$settingsCache[$section])) {
-            $entries = SiteContentEntry::query()
+        return $this->cache->remember($cacheKey, now()->addMinutes(10), function () use ($section, $key, $default) {
+            $record = $this->builder()
                 ->where('section', $section)
-                ->get()
-                ->mapWithKeys(function (SiteContentEntry $entry) {
-                    $value = $entry->value;
+                ->where('key', $key)
+                ->first();
 
-                    if ($entry->type === 'json') {
-                        $decoded = json_decode($entry->value ?? '', true);
+            if (! $record) {
+                return $default;
+            }
 
-                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                            $value = $decoded;
-                        } else {
-                            $value = [];
-                        }
-                    }
+            $value = $record->value_json ?? null;
 
-                    if (is_string($value)) {
-                        $value = trim($value);
-                    }
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
 
-                    return [$entry->key => $value];
-                })
-                ->toArray();
-
-            if ($section === 'general') {
-                $generalRow = SiteSetting::query()->first();
-
-                if ($generalRow) {
-                    $generalValues = Arr::only($generalRow->toArray(), [
-                        'site_name',
-                        'tagline',
-                        'address',
-                        'phone',
-                        'fax',
-                        'email',
-                        'logo_path',
-                    ]);
-
-                    $entries = array_merge($entries, array_filter($generalValues, fn ($value) => $value !== null && $value !== ''));
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    return $decoded;
                 }
             }
 
-            self::$settingsCache[$section] = $entries;
-        }
+            if (is_array($value)) {
+                return $value;
+            }
 
-        return self::$settingsCache[$section];
+            if (is_object($value)) {
+                return json_decode(json_encode($value), true);
+            }
+
+            return $value ?? $default;
+        });
     }
 
-    protected static function mediaForCollection(string $collection): array
+    /**
+     * Fetch media assets for a collection optionally scoped by key.
+     */
+    public function getMedia(string $collection, ?string $key = null): Collection|MediaAsset|null
     {
-        if (! isset(self::$mediaCache[$collection])) {
-            self::$mediaCache[$collection] = MediaAsset::query()
-                ->where('collection', $collection)
-                ->get()
-                ->keyBy('key')
-                ->all();
+        $query = MediaAsset::query()->where('collection', $collection);
+
+        if ($key !== null) {
+            $asset = $query->where('key', $key)->first();
+
+            if ($collection === 'og' && ! $asset) {
+                return $this->resolveOgFallback();
+            }
+
+            return $asset;
         }
 
-        return self::$mediaCache[$collection];
+        $assets = $query->orderBy('id')->get();
+
+        if ($collection === 'og' && $assets->isEmpty()) {
+            $fallback = $this->resolveOgFallback();
+
+            if ($fallback) {
+                return collect([$fallback]);
+            }
+        }
+
+        return $assets;
+    }
+
+    /**
+     * Build a publicly accessible URL for the given media asset.
+     */
+    public function url(MediaAsset $asset): string
+    {
+        $path = $asset->path;
+
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        $disk = $asset->disk ?: 'public';
+
+        return $this->storage->disk($disk)->url($path);
+    }
+
+    private function builder(): Builder
+    {
+        return $this->connection->table('new_site_settings')->select('value_json');
+    }
+
+    private function resolveOgFallback(): ?MediaAsset
+    {
+        $fallback = $this->getSetting('global', 'ogImage');
+
+        return $this->normaliseMediaFallback($fallback);
+    }
+
+    private function normaliseMediaFallback(mixed $fallback): ?MediaAsset
+    {
+        if (! $fallback) {
+            return null;
+        }
+
+        if ($fallback instanceof MediaAsset) {
+            return $fallback;
+        }
+
+        if (is_numeric($fallback)) {
+            return MediaAsset::find((int) $fallback);
+        }
+
+        if (is_array($fallback)) {
+            if (isset($fallback['id'])) {
+                return MediaAsset::find((int) $fallback['id']);
+            }
+
+            if (! isset($fallback['path'])) {
+                return null;
+            }
+
+            $attributes = array_intersect_key($fallback, array_flip([
+                'collection',
+                'key',
+                'disk',
+                'path',
+                'type',
+                'alt',
+                'focal_x',
+                'focal_y',
+            ]));
+
+            $attributes['collection'] = $attributes['collection'] ?? 'og';
+            $attributes['disk'] = $attributes['disk'] ?? 'public';
+
+            return MediaAsset::make($attributes);
+        }
+
+        if (is_string($fallback)) {
+            return MediaAsset::make([
+                'collection' => 'og',
+                'disk' => 'public',
+                'path' => $fallback,
+            ]);
+        }
+
+        return null;
     }
 }

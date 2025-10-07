@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
-import { PublicLayout } from '@/layouts/public/PublicLayout';
+import AppShell from '@/layouts/AppShell';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import type { Crumb } from '@/components/ui/Breadcrumbs';
 
@@ -115,7 +115,7 @@ export default function Profile({ page }: { page: PageData | null }) {
     const breadcrumbs: Crumb[] = [{ label: 'Profil', href: '/profil' }];
 
     return (
-        <PublicLayout>
+        <AppShell siteName={siteName}>
             <Head title={`${title} - ${siteName}`}>
                 <meta name="description" content={description} />
             </Head>
@@ -204,6 +204,6 @@ export default function Profile({ page }: { page: PageData | null }) {
                     </aside>
                 </div>
             </section>
-        </PublicLayout>
+        </AppShell>
     );
 }

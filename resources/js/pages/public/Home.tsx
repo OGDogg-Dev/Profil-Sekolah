@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { PublicLayout } from '@/layouts/public/PublicLayout';
+import AppShell from '@/layouts/AppShell';
 import ProgramGrid from '@/components/vocational/ProgramGrid';
 import AlbumPreview from '@/components/home/AlbumPreview';
 import EventList from '@/components/home/EventList';
@@ -17,76 +17,53 @@ interface HomeProps {
         excerpt?: string | null;
         content?: string | null;
     };
-    hero: {
-        eyebrow?: string;
-        title?: string;
-        description?: string;
-        primary?: {
-            label: string;
-            href: string;
-        };
-        secondary?: {
-            label: string;
-            href: string;
-        };
-        media?: {
-            src: string;
-            alt?: string;
-            type?: string;
-        };
-    };
-    highlights: Array<{
-        title: string;
-        description?: string;
-        href?: string;
-        icon?: string;
-    }>;
-    stats: Array<{
-        label: string;
-        value: string;
-    }>;
-    testimonials: Array<{
-        quote: string;
-        name: string;
-        role?: string;
-    }>;
     programs: VocationalProgram[];
-    news: {
-        mode: string;
-        items: PostSummary[];
-    };
-    agenda: {
-        items: EventSummary[];
-        showCalendar: boolean;
-    };
-    gallery: {
-        mode: string;
-        albums: AlbumSummary[];
-        media: any[];
-    };
-    sections: any;
-    layout: any;
-    seo: any;
+    posts: PostSummary[];
+    events: EventSummary[];
+    albums: AlbumSummary[];
 }
 
 const placeholderImage = 'https://placehold.co/1600x900?text=Profil+Sekolah+Inklusif';
 
-export default function Home({ settings, profile, hero, highlights, stats, testimonials, programs, news, agenda, gallery }: HomeProps) {
+export default function Home({ settings, profile, programs, posts, events, albums }: HomeProps) {
     const siteName = settings?.site_name ?? 'SMK Negeri 10 Kuningan';
     const tagline = settings?.tagline ?? 'Mewujudkan pendidikan vokasional yang inklusif dan berdaya saing.';
 
-    const featuredPost = news.items[0] ?? null;
+    const featuredPost = posts[0] ?? null;
     const highlightedPrograms = programs.slice(0, 4);
-    const latestPosts = news.items.slice(0, 6);
-    const spotlightAlbums = gallery.albums.slice(0, 3);
-    const highlightedEvents = agenda.items.slice(0, 4);
+    const latestPosts = posts.slice(0, 6);
+    const spotlightAlbums = albums.slice(0, 3);
+    const highlightedEvents = events.slice(0, 4);
 
-    const upcomingEvent = agenda.items.find((event) => new Date(event.start_at) >= new Date()) ?? agenda.items[0] ?? null;
+    const upcomingEvent = events.find((event) => new Date(event.start_at) >= new Date()) ?? events[0] ?? null;
 
-    const heroImage = hero.media?.src ?? featuredPost?.cover_url ?? placeholderImage;
+    const stats = [
+        { label: 'Program Vokasional', value: programs.length },
+        { label: 'Agenda Aktif', value: events.length },
+        { label: 'Publikasi', value: posts.length },
+        { label: 'Album Galeri', value: albums.length },
+    ];
+
+    const commitments = [
+        {
+            title: 'Pembelajaran Adaptif',
+            description:
+                'Rencana pembelajaran yang fleksibel dan pendampingan sesuai kebutuhan peserta didik berkebutuhan khusus.',
+        },
+        {
+            title: 'Kolaborasi Industri',
+            description: 'Kemitraan dengan dunia usaha dan dunia industri untuk memberikan pengalaman kerja nyata.',
+        },
+        {
+            title: 'Lingkungan Inklusif',
+            description: 'Fasilitas aksesibel, komunitas suportif, dan budaya sekolah yang menjunjung keberagaman.',
+        },
+    ];
+
+    const heroImage = featuredPost?.cover_url ?? placeholderImage;
 
     return (
-        <PublicLayout>
+        <AppShell siteName={siteName} tagline={tagline}>
             <Head title={`Beranda - ${siteName}`}>
                 <meta name="description" content={tagline} />
             </Head>
@@ -102,51 +79,30 @@ export default function Home({ settings, profile, hero, highlights, stats, testi
                     <div className="relative mx-auto grid w-full max-w-6xl gap-10 px-4 py-20 lg:grid-cols-[1.2fr_1fr]">
                         <div className="space-y-6">
                             <span className="inline-flex items-center rounded-full bg-emerald-400/20 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
-                                {hero.eyebrow ?? "Portal Publik"}
+                                Portal Publik
                             </span>
                             <div className="space-y-4">
                                 <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                                    {hero.title ?? `${siteName}: Ruang Berkembang untuk Semua`}
+                                    {siteName}: Ruang Berkembang untuk Semua
                                 </h1>
                                 <p className="max-w-2xl text-base text-slate-100 sm:text-lg">
-                                    {hero.description ??
-                                        (profile.excerpt ??
-                                            'Kami menghadirkan pembelajaran vokasional yang berpihak pada keberagaman dan memastikan setiap peserta didik mendapatkan dukungan optimal untuk meraih cita-cita.')}
+                                    {profile.excerpt ??
+                                        'Kami menghadirkan pembelajaran vokasional yang berpihak pada keberagaman dan memastikan setiap peserta didik mendapatkan dukungan optimal untuk meraih cita-cita.'}
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-3">
-                                {hero.primary && (
-                                    <Link
-                                        href={hero.primary.href}
-                                        className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-200 hover:text-slate-900"
-                                    >
-                                        {hero.primary.label} ↗
-                                    </Link>
-                                )}
-                                {hero.secondary && (
-                                    <Link
-                                        href={hero.secondary.href}
-                                        className="inline-flex items-center gap-2 rounded-full border border-white/70 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                                    >
-                                        {hero.secondary.label}
-                                    </Link>
-                                )}
-                                {!hero.primary && (
-                                    <Link
-                                        href="/profil"
-                                        className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-200 hover:text-slate-900"
-                                    >
-                                        Jelajahi Profil ↗
-                                    </Link>
-                                )}
-                                {!hero.secondary && (
-                                    <Link
-                                        href="/kontak"
-                                        className="inline-flex items-center gap-2 rounded-full border border-white/70 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                                    >
-                                        Hubungi Kami
-                                    </Link>
-                                )}
+                                <Link
+                                    href="/profil"
+                                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-200 hover:text-slate-900"
+                                >
+                                    Jelajahi Profil ↗
+                                </Link>
+                                <Link
+                                    href="/kontak"
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/70 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                                >
+                                    Hubungi Kami
+                                </Link>
                             </div>
                             {featuredPost && (
                                 <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
@@ -190,23 +146,10 @@ export default function Home({ settings, profile, hero, highlights, stats, testi
                                 )}
                             </div>
                             <div className="rounded-2xl bg-slate-900/70 p-4 shadow-lg">
-                                {testimonials[0] ? (
-                                    <>
-                                        <p className="text-sm font-semibold text-white">
-                                            "{testimonials[0].quote}"
-                                        </p>
-                                        <p className="mt-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
-                                            — {testimonials[0].name}{testimonials[0].role ? `, ${testimonials[0].role}` : ''}
-                                        </p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className="text-sm font-semibold text-white">
-                                            "Pendidikan adalah tiket menuju masa depan. Hari esok dimiliki oleh mereka yang menyiapkan dirinya hari ini."
-                                        </p>
-                                        <p className="mt-2 text-xs uppercase tracking-[0.3em] text-emerald-200">— Malcolm X</p>
-                                    </>
-                                )}
+                                <p className="text-sm font-semibold text-white">
+                                    "Pendidikan adalah tiket menuju masa depan. Hari esok dimiliki oleh mereka yang menyiapkan dirinya hari ini."
+                                </p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.3em] text-emerald-200">— Malcolm X</p>
                             </div>
                         </aside>
                     </div>
@@ -216,7 +159,7 @@ export default function Home({ settings, profile, hero, highlights, stats, testi
                     <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
                         {stats.map((stat) => (
                             <div key={stat.label} className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                                <p className="text-3xl font-semibold text-brand-600">{stat.value}</p>
+                                <p className="text-3xl font-semibold text-brand-600">{stat.value.toString().padStart(2, '0')}</p>
                                 <p className="mt-2 text-sm font-medium uppercase tracking-[0.2em] text-slate-500">{stat.label}</p>
                             </div>
                         ))}
@@ -233,13 +176,13 @@ export default function Home({ settings, profile, hero, highlights, stats, testi
                                 </h2>
                             </header>
                             <div className="grid gap-4 md:grid-cols-2">
-                                {highlights.map((highlight) => (
+                                {commitments.map((commitment) => (
                                     <div
-                                        key={highlight.title}
+                                        key={commitment.title}
                                         className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5 shadow-sm"
                                     >
-                                        <h3 className="text-lg font-semibold text-slate-900">{highlight.title}</h3>
-                                        <p className="mt-2 text-sm text-slate-600">{highlight.description}</p>
+                                        <h3 className="text-lg font-semibold text-slate-900">{commitment.title}</h3>
+                                        <p className="mt-2 text-sm text-slate-600">{commitment.description}</p>
                                     </div>
                                 ))}
                             </div>
@@ -387,6 +330,6 @@ export default function Home({ settings, profile, hero, highlights, stats, testi
                     </div>
                 </section>
             </main>
-        </PublicLayout>
+        </AppShell>
     );
 }

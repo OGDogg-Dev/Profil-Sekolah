@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowUpRight, Camera, ImageIcon } from 'lucide-react';
-import { PublicLayout } from '@/layouts/public/PublicLayout';
+import AppShell from '@/layouts/AppShell';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Pagination from '@/components/ui/Pagination';
 import Card, { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +37,7 @@ export default function GalleryIndex({ albums }: GalleryIndexProps) {
     const description = `Kurasi dokumentasi kegiatan ${siteName} untuk merekam proses belajar, kolaborasi, dan karya terbaik.`;
 
     return (
-        <PublicLayout>
+        <AppShell siteName={siteName}>
             <Head title={`Galeri - ${siteName}`}>
                 <meta name="description" content={description} />
             </Head>
@@ -261,6 +261,6 @@ export default function GalleryIndex({ albums }: GalleryIndexProps) {
                     </div>
                 </div>
             </section>
-        </PublicLayout>
+        </AppShell>
     );
 }

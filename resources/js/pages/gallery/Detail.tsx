@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
 import { ArrowLeft, ArrowUpRight, Camera, ImageIcon } from 'lucide-react';
-import { PublicLayout } from '@/layouts/public/PublicLayout';
+import AppShell from '@/layouts/AppShell';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import AccessibleVideo from '@/components/vocational/AccessibleVideo';
 import Card from '@/components/ui/card';
@@ -43,7 +43,7 @@ export default function GalleryDetail({ album }: GalleryDetailProps) {
     const albumSummary = album.description ?? fallbackSummary;
 
     return (
-        <PublicLayout>
+        <AppShell siteName={siteName}>
             <Head title={`${album.title} - ${siteName}`}>
                 <meta name="description" content={description} />
             </Head>
@@ -212,6 +212,6 @@ export default function GalleryDetail({ album }: GalleryDetailProps) {
                     </div>
                 </div>
             </section>
-        </PublicLayout>
+        </AppShell>
     );
 }

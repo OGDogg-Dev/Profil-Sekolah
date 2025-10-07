@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Post extends Model
@@ -30,6 +31,19 @@ class Post extends Model
                 $post->slug = Str::slug($post->title);
             }
         });
+    }
+
+    public function getCoverUrlAttribute($value): ?string
+    {
+        if (! $value) {
+            return $value;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://', '/'])) {
+            return $value;
+        }
+
+        return Storage::disk('public')->url($value);
     }
 
     public function scopePublished(Builder $query): Builder

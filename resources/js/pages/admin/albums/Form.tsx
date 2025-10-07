@@ -1,232 +1,412 @@
-import React, { useState } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '@/pages/admin/_layout/AdminLayout';
 
+type MediaResource = {
+    id: number;
+    type: 'image' | 'video';
+    url: string;
+    caption?: string | null;
+    sort?: number | null;
+};
+
+type AlbumResource = {
+    id: number;
+    title: string;
+    slug: string;
+    cover_url?: string | null;
+    description?: string | null;
+    media?: MediaResource[];
+};
+
+type PageProps = {
+    flash?: { success?: string };
+};
+
+type AlbumFormValues = {
+    title: string;
+    slug: string;
+    description: string;
+    cover: File | null;
+    removeCover: boolean;
+};
+
+type MediaFormValues = {
+    file: File | null;
+    caption: string;
+    sort: string;
+};
+
 interface AlbumFormProps {
-    album?: {
-        id: number;
-        title: string;
-        slug: string;
-        cover_url?: string | null;
-        description?: string | null;
-        media?: Array<{
-            id: number;
-            type: 'image' | 'video';
-            url: string;
-            caption?: string | null;
-            poster?: string | null;
-            track_vtt?: string | null;
-            sort?: number;
-        }>;
-    };
+    album?: AlbumResource;
+}
+
+function Toast({ message }: { message: string }) {
+    return (
+        <div className="fixed bottom-6 right-6 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl">
+            {message}
+        </div>
+    );
 }
 
 export default function AlbumForm({ album }: AlbumFormProps) {
     const isEdit = Boolean(album?.id);
-    const { props } = usePage();
-    const errors = (props as any)?.errors as Record<string, string> | undefined;
+    const { props } = usePage<PageProps>();
+    const [toastMessage, setToastMessage] = useState<string | null>(props.flash?.success ?? null);
+    const [coverPreview, setCoverPreview] = useState<string | null>(album?.cover_url ?? null);
+    const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+    const [mediaPreviewType, setMediaPreviewType] = useState<'image' | 'video' | null>(null);
 
-    const [form, setForm] = useState({
+    const {
+        data: albumData,
+        setData: setAlbumData,
+        post: submitAlbumRequest,
+        processing: albumProcessing,
+        errors: albumErrors,
+        reset: resetAlbum,
+        transform: transformAlbum,
+    } = useForm<AlbumFormValues>({
         title: album?.title ?? '',
         slug: album?.slug ?? '',
-        cover_url: album?.cover_url ?? '',
         description: album?.description ?? '',
-    });
-    const [mediaForm, setMediaForm] = useState({
-        type: 'image' as 'image' | 'video',
-        url: '',
-        caption: '',
-        poster: '',
-        track_vtt: '',
-        sort: '' as string | number,
+        cover: null,
+        removeCover: false,
     });
 
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const payload = { ...form };
-        if (isEdit && album) {
-            router.post(`/admin/albums/${album.id}`, { ...payload, _method: 'put' });
-        } else {
-            router.post('/admin/albums', payload);
+    const {
+        data: mediaData,
+        setData: setMediaData,
+        post: submitMediaRequest,
+        processing: mediaProcessing,
+        errors: mediaErrors,
+        reset: resetMedia,
+        transform: transformMedia,
+    } = useForm<MediaFormValues>({
+        file: null,
+        caption: '',
+        sort: '',
+    });
+
+    const albumMedia = useMemo(() => album?.media ?? [], [album?.media]);
+
+    useEffect(() => {
+        if (props.flash?.success) {
+            setToastMessage(props.flash.success);
+            const timeout = setTimeout(() => setToastMessage(null), 3500);
+            return () => clearTimeout(timeout);
         }
+
+        return undefined;
+    }, [props.flash?.success]);
+
+    useEffect(() => () => {
+        if (coverPreview && coverPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(coverPreview);
+        }
+    }, [coverPreview]);
+
+    useEffect(() => () => {
+        if (mediaPreview && mediaPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(mediaPreview);
+        }
+    }, [mediaPreview]);
+
+    useEffect(() => {
+        if (!albumData.cover && !albumData.removeCover) {
+            setCoverPreview(album?.cover_url ?? null);
+        }
+    }, [album?.cover_url, albumData.cover, albumData.removeCover]);
+
+    const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        setAlbumData('cover', file);
+        setAlbumData('removeCover', false);
+
+        if (coverPreview && coverPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(coverPreview);
+        }
+
+        setCoverPreview(file ? URL.createObjectURL(file) : album?.cover_url ?? null);
     };
 
-    const addMedia = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!album) return;
-        const payload = {
-            ...mediaForm,
-            sort: mediaForm.sort === '' ? 0 : Number(mediaForm.sort),
-        };
-        router.post(`/admin/albums/${album.id}/media`, payload, {
+    const handleRemoveCover = () => {
+        if (coverPreview && coverPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(coverPreview);
+        }
+
+        setCoverPreview(null);
+        setAlbumData('cover', null);
+        setAlbumData('removeCover', true);
+    };
+
+    const handleMediaFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        setMediaData('file', file);
+
+        if (mediaPreview && mediaPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(mediaPreview);
+        }
+
+        setMediaPreview(file ? URL.createObjectURL(file) : null);
+        setMediaPreviewType(file ? (file.type.startsWith('video/') ? 'video' : 'image') : null);
+    };
+
+    const submitAlbum = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        transformAlbum((current) => {
+            const payload: Record<string, unknown> = {
+                title: current.title,
+                slug: current.slug,
+                description: current.description,
+            };
+
+            if (current.cover) {
+                payload.cover = current.cover;
+            }
+
+            if (current.removeCover) {
+                payload.remove_cover = 1;
+            }
+
+            if (isEdit && album?.id) {
+                payload._method = 'put';
+            }
+
+            return payload;
+        });
+
+        submitAlbumRequest(isEdit && album?.id ? `/admin/albums/${album.id}` : '/admin/albums', {
+            forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => setMediaForm({ type: 'image', url: '', caption: '', poster: '', track_vtt: '', sort: '' }),
+            onSuccess: () => {
+                if (!isEdit) {
+                    resetAlbum();
+                    setCoverPreview(null);
+                } else {
+                    setAlbumData('cover', null);
+                    setAlbumData('removeCover', false);
+                }
+            },
+            onFinish: () => {
+                transformAlbum((formData) => formData);
+            },
+        });
+    };
+
+    const submitMedia = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!album?.id) {
+            return;
+        }
+
+        transformMedia((current) => {
+            const payload: Record<string, unknown> = {};
+
+            if (current.file) {
+                payload.file = current.file;
+            }
+
+            const trimmedCaption = current.caption.trim();
+            if (trimmedCaption) {
+                payload.caption = trimmedCaption;
+            }
+
+            if (current.sort !== '') {
+                payload.sort = Number(current.sort);
+            }
+
+            return payload;
+        });
+
+        submitMediaRequest(`/admin/albums/${album.id}/media`, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                resetMedia();
+                setMediaPreview((prev) => {
+                    if (prev && prev.startsWith('blob:')) {
+                        URL.revokeObjectURL(prev);
+                    }
+
+                    return null;
+                });
+                setMediaPreviewType(null);
+            },
+            onFinish: () => {
+                transformMedia((formData) => formData);
+            },
         });
     };
 
     const deleteMedia = (mediaId: number) => {
-        if (!album) return;
-        if (confirm('Hapus media ini?')) {
-            router.delete(`/admin/albums/${album.id}/media/${mediaId}`, { preserveScroll: true });
+        if (!album?.id) {
+            return;
         }
+
+        if (typeof window !== 'undefined' && !window.confirm('Hapus media ini?')) {
+            return;
+        }
+
+        router.delete(`/admin/albums/${album.id}/media/${mediaId}`, {
+            preserveScroll: true,
+        });
     };
 
     return (
         <AdminLayout title={isEdit ? 'Kelola Album' : 'Tambah Album'}>
-            <form onSubmit={submit} className="grid max-w-3xl gap-4">
+            {toastMessage ? <Toast message={toastMessage} /> : null}
+
+            <form onSubmit={submitAlbum} className="grid max-w-3xl gap-4" encType="multipart/form-data">
                 <div>
                     <label className="block text-sm font-medium text-slate-700">Judul</label>
                     <input
-                        value={form.title}
-                        onChange={(e) => setForm({ ...form, title: e.target.value })}
+                        value={albumData.title}
+                        onChange={(event) => setAlbumData('title', event.target.value)}
                         className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
                         required
                     />
-                    {errors?.title ? <p className="mt-1 text-xs text-rose-600">{errors.title}</p> : null}
+                    {albumErrors.title ? <p className="mt-1 text-xs text-rose-600">{albumErrors.title}</p> : null}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-700">Slug (opsional)</label>
                     <input
-                        value={form.slug}
-                        onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                        value={albumData.slug}
+                        onChange={(event) => setAlbumData('slug', event.target.value)}
                         className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
                     />
-                    {errors?.slug ? <p className="mt-1 text-xs text-rose-600">{errors.slug}</p> : null}
+                    {albumErrors.slug ? <p className="mt-1 text-xs text-rose-600">{albumErrors.slug}</p> : null}
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700">Cover URL</label>
+                    <label className="block text-sm font-medium text-slate-700">Cover Album</label>
                     <input
-                        value={form.cover_url}
-                        onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
-                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                        placeholder="https://..."
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleCoverChange}
+                        className="mt-1 block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
                     />
-                    {errors?.cover_url ? <p className="mt-1 text-xs text-rose-600">{errors.cover_url}</p> : null}
+                    {albumErrors.cover ? <p className="mt-1 text-xs text-rose-600">{albumErrors.cover}</p> : null}
+                    {coverPreview ? (
+                        <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
+                            <img src={coverPreview} alt="Preview cover" className="h-48 w-full object-cover" />
+                        </div>
+                    ) : null}
+                    {(coverPreview || album?.cover_url) && !albumData.removeCover ? (
+                        <button
+                            type="button"
+                            onClick={handleRemoveCover}
+                            className="mt-3 inline-flex items-center justify-center rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                            disabled={albumProcessing}
+                        >
+                            Hapus Cover
+                        </button>
+                    ) : null}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-700">Deskripsi</label>
                     <textarea
-                        value={form.description}
-                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        value={albumData.description}
+                        onChange={(event) => setAlbumData('description', event.target.value)}
                         className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
                         rows={6}
                     />
-                    {errors?.description ? <p className="mt-1 text-xs text-rose-600">{errors.description}</p> : null}
+                    {albumErrors.description ? <p className="mt-1 text-xs text-rose-600">{albumErrors.description}</p> : null}
                 </div>
                 <div className="flex items-center justify-end gap-2">
-                    <a
+                    <Link
                         href="/admin/albums"
                         className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                     >
                         Kembali
-                    </a>
+                    </Link>
                     <button
                         type="submit"
-                        className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                        className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled={albumProcessing}
                     >
                         Simpan
                     </button>
                 </div>
             </form>
 
-            {album ? (
+            {isEdit ? (
                 <div className="mt-8 space-y-4">
                     <h2 className="text-lg font-semibold text-slate-900">Tambah Media</h2>
-                    <form onSubmit={addMedia} className="grid gap-3 rounded-2xl border bg-white p-4">
-                        <div className="grid gap-3 md:grid-cols-2">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700">Tipe</label>
-                                <select
-                                    value={mediaForm.type}
-                                    onChange={(e) => setMediaForm({ ...mediaForm, type: e.target.value as 'image' | 'video' })}
-                                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                                >
-                                    <option value="image">Gambar</option>
-                                    <option value="video">Video</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700">Urutan</label>
-                                <input
-                                    value={mediaForm.sort}
-                                    onChange={(e) => setMediaForm({ ...mediaForm, sort: e.target.value })}
-                                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                                    type="number"
-                                    min="0"
-                                />
-                            </div>
-                        </div>
+                    <form onSubmit={submitMedia} className="grid gap-3 rounded-2xl border bg-white p-4" encType="multipart/form-data">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">URL</label>
+                            <label className="block text-sm font-medium text-slate-700">Berkas Media</label>
                             <input
-                                value={mediaForm.url}
-                                onChange={(e) => setMediaForm({ ...mediaForm, url: e.target.value })}
-                                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                                required
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,video/mp4"
+                                onChange={handleMediaFileChange}
+                                className="mt-1 block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
                             />
+                            {mediaErrors.file ? <p className="mt-1 text-xs text-rose-600">{mediaErrors.file}</p> : null}
+                            {mediaPreview ? (
+                                <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
+                                    {mediaPreviewType === 'video' ? (
+                                        <video src={mediaPreview} className="h-48 w-full object-cover" controls />
+                                    ) : (
+                                        <img src={mediaPreview} alt="Preview media" className="h-48 w-full object-cover" />
+                                    )}
+                                </div>
+                            ) : null}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700">Caption</label>
                             <input
-                                value={mediaForm.caption}
-                                onChange={(e) => setMediaForm({ ...mediaForm, caption: e.target.value })}
+                                value={mediaData.caption}
+                                onChange={(event) => setMediaData('caption', event.target.value)}
                                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
                             />
+                            {mediaErrors.caption ? <p className="mt-1 text-xs text-rose-600">{mediaErrors.caption}</p> : null}
                         </div>
-                        {mediaForm.type === 'video' ? (
-                            <div className="grid gap-3 md:grid-cols-2">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700">Poster (opsional)</label>
-                                    <input
-                                        value={mediaForm.poster}
-                                        onChange={(e) => setMediaForm({ ...mediaForm, poster: e.target.value })}
-                                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700">Track VTT (opsional)</label>
-                                    <input
-                                        value={mediaForm.track_vtt}
-                                        onChange={(e) => setMediaForm({ ...mediaForm, track_vtt: e.target.value })}
-                                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                                    />
-                                </div>
-                            </div>
-                        ) : null}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">Urutan</label>
+                            <input
+                                value={mediaData.sort}
+                                onChange={(event) => setMediaData('sort', event.target.value)}
+                                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                                type="number"
+                                min="0"
+                            />
+                            {mediaErrors.sort ? <p className="mt-1 text-xs text-rose-600">{mediaErrors.sort}</p> : null}
+                        </div>
                         <div className="flex justify-end">
                             <button
                                 type="submit"
-                                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                                className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                                disabled={mediaProcessing}
                             >
                                 Tambah Media
                             </button>
                         </div>
                     </form>
 
-                    <div className="space-y-3">
-                        <h3 className="text-base font-semibold text-slate-900">Daftar Media</h3>
-                        {album.media?.length ? (
-                            <div className="grid gap-3 md:grid-cols-2">
-                                {album.media.map((media) => (
-                                    <div key={media.id} className="rounded-xl border bg-white p-4">
-                                        <p className="text-xs uppercase tracking-wide text-slate-500">{media.type.toUpperCase()}</p>
-                                        <p className="mt-1 break-all text-sm font-medium text-slate-800">{media.url}</p>
-                                        {media.caption ? (
-                                            <p className="text-sm text-slate-600">{media.caption}</p>
-                                        ) : null}
-                                        <button
-                                            type="button"
-                                            onClick={() => deleteMedia(media.id)}
-                                            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50"
-                                        >
-                                            Hapus
-                                        </button>
-                                    </div>
-                                ))}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {albumMedia.map((item) => (
+                            <div key={item.id} className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                                <div className="relative aspect-video overflow-hidden">
+                                    {item.type === 'video' ? (
+                                        <video src={item.url} className="h-full w-full object-cover" controls />
+                                    ) : (
+                                        <img src={item.url} alt={item.caption ?? 'Media album'} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                                    )}
+                                </div>
+                                <div className="flex flex-1 flex-col gap-2 p-4 text-sm text-slate-600">
+                                    <p className="font-semibold text-slate-900">{item.caption ?? 'Tanpa caption'}</p>
+                                    {typeof item.sort === 'number' ? <p className="text-xs text-slate-500">Urutan: {item.sort}</p> : null}
+                                    <button
+                                        type="button"
+                                        onClick={() => deleteMedia(item.id)}
+                                        className="mt-auto inline-flex items-center justify-center rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                                    >
+                                        Hapus Media
+                                    </button>
+                                </div>
                             </div>
-                        ) : (
-                            <p className="text-sm text-slate-500">Belum ada media pada album ini.</p>
-                        )}
+                        ))}
                     </div>
                 </div>
             ) : null}

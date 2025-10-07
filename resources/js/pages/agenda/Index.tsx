@@ -7,7 +7,7 @@ import {
     MapPin,
     Sparkles,
 } from 'lucide-react';
-import AppShell from '@/layouts/AppShell';
+import PublicLayout from '@/layouts/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Pagination from '@/components/ui/Pagination';
 import type { EventSummary } from '@/features/content/types';
@@ -157,7 +157,7 @@ export default function AgendaIndex({ events, filters }: AgendaIndexProps) {
     const metaDescription = highlightDescription || `Agenda kegiatan terbaru dari ${siteName}.`;
 
     return (
-        <AppShell siteName={siteName}>
+        <PublicLayout siteName={siteName}>
             <Head title={`Agenda - ${siteName}`}>
                 <meta name="description" content={metaDescription} />
             </Head>
@@ -428,6 +428,6 @@ export default function AgendaIndex({ events, filters }: AgendaIndexProps) {
                     </div>
                 </div>
             </section>
-        </AppShell>
+        </PublicLayout>
     );
 }

@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import AppShell from '@/layouts/AppShell';
+import PublicLayout from '@/layouts/PublicLayout';
 import ProgramGrid from '@/components/vocational/ProgramGrid';
 import AlbumPreview from '@/components/home/AlbumPreview';
 import EventList from '@/components/home/EventList';
@@ -63,7 +63,7 @@ export default function Home({ settings, profile, programs, posts, events, album
     const heroImage = featuredPost?.cover_url ?? placeholderImage;
 
     return (
-        <AppShell siteName={siteName} tagline={tagline}>
+        <PublicLayout siteName={siteName} tagline={tagline}>
             <Head title={`Beranda - ${siteName}`}>
                 <meta name="description" content={tagline} />
             </Head>
@@ -330,6 +330,6 @@ export default function Home({ settings, profile, programs, posts, events, album
                     </div>
                 </section>
             </main>
-        </AppShell>
+        </PublicLayout>
     );
 }

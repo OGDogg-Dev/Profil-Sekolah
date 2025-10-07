@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { CalendarDays, Newspaper, Sparkles } from 'lucide-react';
-import AppShell from '@/layouts/AppShell';
+import PublicLayout from '@/layouts/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Pagination from '@/components/ui/Pagination';
 import type { PostSummary } from '@/features/content/types';
@@ -131,7 +131,7 @@ export default function NewsIndex({ posts }: NewsIndexProps) {
     const postsForGrid = featuredPost ? otherPosts : allPosts;
 
     return (
-        <AppShell siteName={siteName}>
+        <PublicLayout siteName={siteName}>
             <Head title={`Berita - ${siteName}`}>
                 <meta name="description" content={summaryExcerpt} />
             </Head>
@@ -401,6 +401,6 @@ export default function NewsIndex({ posts }: NewsIndexProps) {
                     </div>
                 </div>
             </section>
-        </AppShell>
+        </PublicLayout>
     );
 }

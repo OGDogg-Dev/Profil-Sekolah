@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
-import AppShell from '@/layouts/AppShell';
+import PublicLayout from '@/layouts/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 interface VisionMissionProps {
@@ -90,7 +90,7 @@ export default function VisionMission({ page, vision, missions = [] }: VisionMis
     ];
 
     return (
-        <AppShell siteName={siteName}>
+        <PublicLayout siteName={siteName}>
             <Head title={`${title} - ${siteName}`}>
                 <meta name="description" content={description} />
             </Head>
@@ -200,6 +200,6 @@ export default function VisionMission({ page, vision, missions = [] }: VisionMis
                     </div>
                 </section>
             )}
-        </AppShell>
+        </PublicLayout>
     );
 }

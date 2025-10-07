@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, CalendarCheck, CalendarClock, MapPin, Share2 } from 'lucide-react';
-import AppShell from '@/layouts/AppShell';
+import PublicLayout from '@/layouts/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import type { EventSummary } from '@/features/content/types';
 
@@ -158,7 +158,7 @@ export default function AgendaDetail({ event }: AgendaDetailProps) {
     const icsHref = `data:text/calendar;charset=utf-8,${icsContent}`;
 
     return (
-        <AppShell siteName={siteName}>
+        <PublicLayout siteName={siteName}>
             <Head title={`${event.title} - ${siteName}`}>
                 <meta name="description" content={cleanedDescription} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />
@@ -273,6 +273,6 @@ export default function AgendaDetail({ event }: AgendaDetailProps) {
                     </aside>
                 </div>
             </section>
-        </AppShell>
+        </PublicLayout>
     );
 }

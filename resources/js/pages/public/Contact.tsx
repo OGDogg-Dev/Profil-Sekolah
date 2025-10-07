@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import AppShell from '@/layouts/AppShell';
+import PublicLayout from '@/layouts/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 type FormState = {
@@ -141,7 +141,7 @@ export default function Contact({ title }: { title: string }) {
     ];
 
     return (
-        <AppShell siteName={siteName}>
+        <PublicLayout siteName={siteName}>
             <Head title={`Hubungi Kami - ${siteName}`}>
                 <meta name="description" content={description} />
             </Head>
@@ -402,6 +402,6 @@ export default function Contact({ title }: { title: string }) {
                     </div>
                 </div>
             </section>
-        </AppShell>
+        </PublicLayout>
     );
 }

@@ -65,14 +65,14 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-    { id: 'home', label: 'Beranda', href: '/', icon: Home },
-    { id: 'profil', label: 'Profil', href: '/profil', icon: User },
-    { id: 'visi', label: 'Visi & Misi', href: '/visi-misi', icon: Target },
-    { id: 'program', label: 'Direktori Program', href: '/vokasional', icon: Layers },
-    { id: 'berita', label: 'Berita', href: '/berita', icon: Newspaper },
-    { id: 'agenda', label: 'Agenda', href: '/agenda', icon: CalendarDays },
-    { id: 'galeri', label: 'Galeri', href: '/galeri', icon: ImageIcon },
-    { id: 'kontak', label: 'Hubungi Kami', href: '/hubungi-kami', icon: MessageCircle },
+    { id: 'home', label: '', href: '/', icon: Home },
+    { id: 'profil', label: '', href: '/profil', icon: User },
+    { id: 'visi', label: '', href: '/visi-misi', icon: Target },
+    { id: 'program', label: '', href: '/vokasional', icon: Layers },
+    { id: 'berita', label: '', href: '/berita', icon: Newspaper },
+    { id: 'agenda', label: '', href: '/agenda', icon: CalendarDays },
+    { id: 'galeri', label: '', href: '/galeri', icon: ImageIcon },
+    
 ];
 
 export default function PublicLayout({ children, siteName, tagline }: PublicLayoutProps) {
@@ -123,7 +123,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
 
     const whatsappNumber = sharedSettings?.whatsapp?.replace(/[^0-9]/g, '') ?? null;
     const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : '/hubungi-kami';
-    const whatsappLabel = whatsappNumber ? 'WhatsApp' : 'Hubungi Kami';
+    const whatsappLabel = whatsappNumber ? 'Hubungi Kami' : 'Hubungi Kami';
 
     const year = new Date().getFullYear();
 
@@ -140,7 +140,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                             )}
                         </span>
                         <div className="flex flex-col">
-                            <span className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Profil Sekolah</span>
+                            
                             <span className="text-lg font-semibold text-slate-900">{resolvedSiteName}</span>
                             <span className="text-xs text-slate-500">{resolvedTagline}</span>
                         </div>

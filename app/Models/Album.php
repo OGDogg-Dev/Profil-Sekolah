@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Album extends Model
@@ -32,5 +33,18 @@ class Album extends Model
     public function mediaCount(): int
     {
         return $this->media()->count();
+    }
+
+    public function getCoverUrlAttribute($value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://', '/'])) {
+            return $value;
+        }
+
+        return Storage::disk('public')->url($value);
     }
 }

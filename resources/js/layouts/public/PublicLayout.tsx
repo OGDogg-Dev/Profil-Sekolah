@@ -62,14 +62,14 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-    { id: 'home', label: 'Beranda', href: '/', icon: Home },
-    { id: 'profil', label: 'Profil', href: '/profil', icon: User },
-    { id: 'visi', label: 'Visi & Misi', href: '/visi-misi', icon: Target },
-    { id: 'program', label: 'Direktori Program', href: '/vokasional', icon: Layers },
-    { id: 'berita', label: 'Berita', href: '/berita', icon: Newspaper },
-    { id: 'agenda', label: 'Agenda', href: '/agenda', icon: CalendarDays },
-    { id: 'galeri', label: 'Galeri', href: '/galeri', icon: ImageIcon },
-    { id: 'kontak', label: 'Hubungi Kami', href: '/hubungi-kami', icon: MessageCircle },
+    { id: 'home', label: '', href: '/', icon: Home },
+    { id: 'profil', label: '', href: '/profil', icon: User },
+    { id: 'visi', label: '', href: '/visi-misi', icon: Target },
+    { id: 'program', label: '', href: '/vokasional', icon: Layers },
+    { id: 'berita', label: '', href: '/berita', icon: Newspaper },
+    { id: 'agenda', label: '', href: '/agenda', icon: CalendarDays },
+    { id: 'galeri', label: '', href: '/galeri', icon: ImageIcon },
+    
 ];
 
 export default function PublicLayout({ children, siteName, tagline }: PublicLayoutProps) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '@/pages/admin/_layout/AdminLayout';
 
@@ -19,8 +19,8 @@ type SettingsResource = {
     phone?: string | null;
     whatsapp?: string | null;
     email?: string | null;
-    social?: SocialLink[] | null;
-    footer_hours?: FooterHour[] | null;
+    social?: unknown;
+    footer_hours?: unknown;
     logo_url?: string | null;
     og_image_url?: string | null;
 };
@@ -44,20 +44,108 @@ type FormValues = {
     removeOg: boolean;
 };
 
-const ensureEntries = <T extends { [key: string]: string }>(items?: T[] | null, fallback: T = { label: '', url: '' } as T): T[] => {
-    if (!items || items.length === 0) {
-        return [fallback];
+const EMPTY_SOCIAL: SocialLink = { label: '', url: '' };
+const EMPTY_HOUR: FooterHour = { day: '', time: '' };
+
+const normaliseSocial = (raw: unknown): SocialLink[] => {
+    if (Array.isArray(raw)) {
+        const mapped = raw
+            .map((entry) => {
+                if (!entry || typeof entry !== 'object') {
+                    return null;
+                }
+
+                const label = 'label' in entry && typeof entry.label === 'string' ? entry.label.trim() : '';
+                const url = 'url' in entry && typeof entry.url === 'string' ? entry.url.trim() : '';
+
+                if (label || url) {
+                    return { label, url };
+                }
+
+                return null;
+            })
+            .filter((entry): entry is SocialLink => Boolean(entry));
+
+        if (mapped.length > 0) {
+            return mapped;
+        }
+    } else if (raw && typeof raw === 'object') {
+        const entries = Object.entries(raw as Record<string, unknown>)
+            .map(([label, value]) => {
+                const url = typeof value === 'string' ? value.trim() : '';
+
+                if (label || url) {
+                    return { label: label.trim(), url };
+                }
+
+                return null;
+            })
+            .filter((entry): entry is SocialLink => Boolean(entry));
+
+        if (entries.length > 0) {
+            return entries;
+        }
     }
 
-    return items;
+    return [EMPTY_SOCIAL];
 };
 
-const ensureHours = (items?: FooterHour[] | null): FooterHour[] => {
-    if (!items || items.length === 0) {
-        return [{ day: '', time: '' }];
+const normaliseFooterHours = (raw: unknown): FooterHour[] => {
+    if (Array.isArray(raw)) {
+        const mapped = raw
+            .map((entry) => {
+                if (!entry || typeof entry !== 'object') {
+                    return null;
+                }
+
+                const day = 'day' in entry && typeof entry.day === 'string'
+                    ? entry.day.trim()
+                    : 'label' in entry && typeof entry.label === 'string'
+                        ? entry.label.trim()
+                        : '';
+
+                let time = 'time' in entry && typeof entry.time === 'string' ? entry.time.trim() : '';
+
+                if (!time && 'value' in entry && typeof entry.value === 'string') {
+                    time = entry.value.trim();
+                }
+
+                if (!time) {
+                    const open = 'open' in entry && typeof entry.open === 'string' ? entry.open.trim() : '';
+                    const close = 'close' in entry && typeof entry.close === 'string' ? entry.close.trim() : '';
+                    time = [open, close].filter(Boolean).join(' - ');
+                }
+
+                if (day || time) {
+                    return { day, time };
+                }
+
+                return null;
+            })
+            .filter((entry): entry is FooterHour => Boolean(entry));
+
+        if (mapped.length > 0) {
+            return mapped;
+        }
+    } else if (raw && typeof raw === 'object') {
+        const entries = Object.entries(raw as Record<string, unknown>)
+            .map(([day, value]) => {
+                const time = typeof value === 'string' ? value.trim() : '';
+
+                if (day || time) {
+                    return { day: day.trim(), time };
+                }
+
+                return null;
+            })
+            .filter((entry): entry is FooterHour => Boolean(entry));
+
+        if (entries.length > 0) {
+            return entries;
+        }
     }
 
-    return items;
+    return [EMPTY_HOUR];
 };
 
 function Toast({ message }: { message: string }) {
@@ -78,6 +166,9 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
     const [logoPreview, setLogoPreview] = useState<string | null>(settings?.logo_url ?? null);
     const [ogPreview, setOgPreview] = useState<string | null>(settings?.og_image_url ?? null);
 
+    const initialSocial = useMemo(() => normaliseSocial(settings?.social), [settings?.social]);
+    const initialFooterHours = useMemo(() => normaliseFooterHours(settings?.footer_hours), [settings?.footer_hours]);
+
     const { data, setData, post: submitRequest, processing, errors, reset, transform } = useForm<FormValues>({
         site_name: settings?.site_name ?? '',
         tagline: settings?.tagline ?? '',
@@ -85,13 +176,21 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
         phone: settings?.phone ?? '',
         whatsapp: settings?.whatsapp ?? '',
         email: settings?.email ?? '',
-        social: ensureEntries(settings?.social ?? null, { label: '', url: '' }),
-        footer_hours: ensureHours(settings?.footer_hours ?? null),
+        social: initialSocial,
+        footer_hours: initialFooterHours,
         logo: null,
         og_image: null,
         removeLogo: false,
         removeOg: false,
     });
+
+    useEffect(() => {
+        setData('social', initialSocial);
+    }, [initialSocial, setData]);
+
+    useEffect(() => {
+        setData('footer_hours', initialFooterHours);
+    }, [initialFooterHours, setData]);
 
     useEffect(() => {
         if (props.flash?.success) {
@@ -138,12 +237,12 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
     };
 
     const addSocial = () => {
-        setData('social', [...data.social, { label: '', url: '' }]);
+        setData('social', [...data.social, { ...EMPTY_SOCIAL }]);
     };
 
     const removeSocial = (index: number) => {
         const next = data.social.filter((_, idx) => idx !== index);
-        setData('social', next.length > 0 ? next : [{ label: '', url: '' }]);
+        setData('social', next.length > 0 ? next : [{ ...EMPTY_SOCIAL }]);
     };
 
     const updateHour = (index: number, key: keyof FooterHour, value: string) => {
@@ -153,15 +252,15 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
     };
 
     const addHour = () => {
-        setData('footer_hours', [...data.footer_hours, { day: '', time: '' }]);
+        setData('footer_hours', [...data.footer_hours, { ...EMPTY_HOUR }]);
     };
 
     const removeHour = (index: number) => {
         const next = data.footer_hours.filter((_, idx) => idx !== index);
-        setData('footer_hours', next.length > 0 ? next : [{ day: '', time: '' }]);
+        setData('footer_hours', next.length > 0 ? next : [{ ...EMPTY_HOUR }]);
     };
 
-    const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setData('logo', file);
         setData('removeLogo', false);
@@ -183,7 +282,7 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
         setData('removeLogo', true);
     };
 
-    const handleOgChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleOgChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setData('og_image', file);
         setData('removeOg', false);
@@ -205,12 +304,23 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
         setData('removeOg', true);
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         transform((current) => {
-            const social = current.social.filter((item) => item.label.trim() && item.url.trim());
-            const footerHours = current.footer_hours.filter((item) => item.day.trim() && item.time.trim());
+            const social = current.social
+                .map((item) => ({
+                    label: item.label.trim(),
+                    url: item.url.trim(),
+                }))
+                .filter((item) => item.label && item.url);
+
+            const footerHours = current.footer_hours
+                .map((item) => ({
+                    day: item.day.trim(),
+                    time: item.time.trim(),
+                }))
+                .filter((item) => item.day || item.time);
 
             const payload: Record<string, unknown> = {
                 site_name: current.site_name,

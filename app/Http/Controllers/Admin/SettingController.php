@@ -32,8 +32,13 @@ class SettingController extends Controller
         ];
 
         $settings = collect($generalKeys)->mapWithKeys(function (string $key) {
-            return [$key => SiteContent::getSetting('general', $key)];
+            $default = in_array($key, ['social', 'footer_hours'], true) ? [] : null;
+
+            return [$key => SiteContent::getSetting('general', $key, $default)];
         })->all();
+
+        $settings['social'] = $this->normaliseSocial($settings['social'] ?? []);
+        $settings['footer_hours'] = $this->normaliseFooterHours($settings['footer_hours'] ?? []);
 
         $logo = SiteContent::getMedia('logo', 'global');
         $ogAsset = SiteContent::getMedia('og', 'global');
@@ -155,5 +160,100 @@ class SettingController extends Controller
         foreach (array_keys($values) as $key) {
             SiteContent::forgetSetting('general', $key);
         }
+    }
+
+    /**
+     * @param  mixed  $value
+     * @return array<int, array{label: string, url: string}>
+     */
+    private function normaliseSocial(mixed $value): array
+    {
+        $items = [];
+
+        if (is_array($value)) {
+            if (array_is_list($value)) {
+                foreach ($value as $entry) {
+                    if (! is_array($entry)) {
+                        continue;
+                    }
+
+                    $label = isset($entry['label']) && is_string($entry['label']) ? trim($entry['label']) : '';
+                    $url = isset($entry['url']) && is_string($entry['url']) ? trim($entry['url']) : '';
+
+                    if ($label !== '' || $url !== '') {
+                        $items[] = ['label' => $label, 'url' => $url];
+                    }
+                }
+            } else {
+                foreach ($value as $label => $url) {
+                    $labelString = is_string($label) ? trim($label) : '';
+                    $urlString = is_string($url) ? trim($url) : '';
+
+                    if ($labelString !== '' || $urlString !== '') {
+                        $items[] = ['label' => $labelString, 'url' => $urlString];
+                    }
+                }
+            }
+        }
+
+        if ($items === []) {
+            return [['label' => '', 'url' => '']];
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param  mixed  $value
+     * @return array<int, array{day: string, time: string}>
+     */
+    private function normaliseFooterHours(mixed $value): array
+    {
+        $items = [];
+
+        if (is_array($value)) {
+            if (array_is_list($value)) {
+                foreach ($value as $entry) {
+                    if (! is_array($entry)) {
+                        continue;
+                    }
+
+                    $day = isset($entry['day']) && is_string($entry['day'])
+                        ? trim($entry['day'])
+                        : (isset($entry['label']) && is_string($entry['label']) ? trim($entry['label']) : '');
+
+                    $time = isset($entry['time']) && is_string($entry['time']) ? trim($entry['time']) : '';
+
+                    if ($time === '') {
+                        $open = isset($entry['open']) && is_string($entry['open']) ? trim($entry['open']) : '';
+                        $close = isset($entry['close']) && is_string($entry['close']) ? trim($entry['close']) : '';
+                        $time = trim(implode(' - ', array_filter([$open, $close])));
+                    }
+
+                    if ($time === '' && isset($entry['value']) && is_string($entry['value'])) {
+                        $time = trim($entry['value']);
+                    }
+
+                    if ($day !== '' || $time !== '') {
+                        $items[] = ['day' => $day, 'time' => $time];
+                    }
+                }
+            } else {
+                foreach ($value as $day => $time) {
+                    $dayString = is_string($day) ? trim($day) : '';
+                    $timeString = is_string($time) ? trim($time) : '';
+
+                    if ($dayString !== '' || $timeString !== '') {
+                        $items[] = ['day' => $dayString, 'time' => $timeString];
+                    }
+                }
+            }
+        }
+
+        if ($items === []) {
+            return [['day' => '', 'time' => '']];
+        }
+
+        return $items;
     }
 }

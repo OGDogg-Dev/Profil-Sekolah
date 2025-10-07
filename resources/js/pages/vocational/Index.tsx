@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { Layers, Search, Sparkles, UsersRound } from 'lucide-react';
-import PublicLayout from '@/layouts/PublicLayout';
+import PublicLayout from '@/layouts/public/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import ProgramGrid from '@/components/vocational/ProgramGrid';
 import type { VocationalProgram } from '@/features/vocational/types';

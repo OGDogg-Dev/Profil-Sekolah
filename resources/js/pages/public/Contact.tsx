@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import PublicLayout from '@/layouts/PublicLayout';
+import PublicLayout from '@/layouts/public/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 type FormState = {

@@ -1,252 +1,291 @@
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
-import {
-  CalendarDays,
-  Circle,
-  Home,
-  Image as ImageIcon,
-  Layers,
-  LucideIcon,
-  Mail,
-  MapPin,
-  Menu,
-  MessageCircle,
-  Newspaper,
-  Phone,
-  School,
-  Search,
-  Target,
-  User,
-  X,
-} from 'lucide-react';
+import { Mail, MapPin, Menu, Phone, Rss, Search, X } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
-import { Container } from '@/components/ui/Container';
-import { cn } from '@/lib/utils';
+interface PublicLayoutProps {
+    children: ReactNode;
+    siteName?: string | null;
+    tagline?: string | null;
+}
 
-type NavLink = {
-  label: string;
-  href: string;
-  icon?: LucideIcon;
+type SocialLink = {
+    label?: string | null;
+    url?: string | null;
+    icon?: string | null;
 };
 
-type PublicLayoutProps = {
-  children: ReactNode;
-  navLinks?: NavLink[];
-  showSearch?: boolean;
+type FooterHour = {
+    day?: string | null;
+    label?: string | null;
+    open?: string | null;
+    close?: string | null;
+    value?: string | null;
 };
 
 type SharedSettings = {
-  site_name?: string;
-  tagline?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
+    name?: string | null;
+    tagline?: string | null;
+    logo_url?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    email?: string | null;
+    address?: string | null;
+    social?: SocialLink[] | null;
+    footer_hours?: FooterHour[] | null;
 };
 
-type SharedPageProps = {
-  settings?: SharedSettings;
+type SharedProps = {
+    settings?: SharedSettings | null;
 };
 
-const DEFAULT_NAV_LINKS: NavLink[] = [
-  { href: '/', label: 'Beranda', icon: Home },
-  { href: '/profil', label: 'Profil', icon: User },
-  { href: '/visi-misi', label: 'Visi & Misi', icon: Target },
-  { href: '/vokasional', label: 'Direktori Program', icon: Layers },
-  { href: '/berita', label: 'Berita', icon: Newspaper },
-  { href: '/agenda', label: 'Agenda', icon: CalendarDays },
-  { href: '/galeri', label: 'Galeri', icon: ImageIcon },
-  { href: '/hubungi-kami', label: 'Hubungi Kami', icon: MessageCircle },
+type NavItem = {
+    id: string;
+    label: string;
+    href: string;
+};
+
+const NAV_ITEMS: NavItem[] = [
+    { id: 'home', label: 'Beranda', href: '/' },
+    { id: 'profil', label: 'Profil', href: '/profil' },
+    { id: 'visi', label: 'Visi & Misi', href: '/visi-misi' },
+    { id: 'program', label: 'Direktori Program', href: '/vokasional' },
+    { id: 'berita', label: 'Berita', href: '/berita' },
+    { id: 'agenda', label: 'Agenda', href: '/agenda' },
+    { id: 'galeri', label: 'Galeri', href: '/galeri' },
+    { id: 'kontak', label: 'Hubungi Kami', href: '/hubungi-kami' },
 ];
 
-const FALLBACK_CONTACT = {
-  address: 'Jl. Rampa Akses 01, Surakarta',
-  phone: '+62-812-0000-0000',
-  email: 'halo@sekolahinklusi.sch.id',
-};
+export default function PublicLayout({ children, siteName, tagline }: PublicLayoutProps) {
+    const { url, props } = usePage<SharedProps>();
+    const currentPath = useMemo(() => url.split('?')[0], [url]);
+    const sharedSettings = props.settings ?? undefined;
 
-export function PublicLayout({ children, navLinks = DEFAULT_NAV_LINKS, showSearch = true }: PublicLayoutProps) {
-  const page = usePage<SharedPageProps>();
-  const { url } = page;
-  const settings = page.props.settings ?? {};
+    const resolvedSiteName = siteName ?? sharedSettings?.name ?? 'Sekolah Inklusif';
+    const resolvedTagline = tagline ?? sharedSettings?.tagline ?? 'Membangun masa depan yang ramah untuk semua.';
+    const logoUrl = sharedSettings?.logo_url ?? null;
 
-  const [mobileOpen, setMobileOpen] = useState(false);
+    const phone = sharedSettings?.phone ?? sharedSettings?.whatsapp ?? null;
+    const email = sharedSettings?.email ?? null;
+    const address = sharedSettings?.address ?? null;
+    const socialLinks = (sharedSettings?.social ?? []).filter((link): link is SocialLink & { url: string } =>
+        Boolean(link?.url)
+    );
+    const footerHours = (sharedSettings?.footer_hours ?? []).filter(Boolean);
 
-  const siteName = settings.site_name ?? 'Profil-Sekolah';
-  const address = settings.address ?? FALLBACK_CONTACT.address;
-  const phone = settings.phone ?? FALLBACK_CONTACT.phone;
-  const email = settings.email ?? FALLBACK_CONTACT.email;
-  const whatsappHref = buildWhatsAppLink(settings.phone ?? FALLBACK_CONTACT.phone);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
-  const activeHref = useMemo(() => {
-    const [path] = url.split('?');
-    return path;
-  }, [url]);
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [currentPath]);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [activeHref]);
+    const year = new Date().getFullYear();
 
-  const currentYear = new Date().getFullYear();
+    return (
+        <div className="min-h-screen bg-slate-100 text-slate-800">
+            <header className="shadow-sm">
+                <div className="border-b border-white/10 bg-slate-900 text-white">
+                    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 md:flex-row md:items-center md:justify-between">
+                        <Link href="/" className="flex items-center gap-4" aria-label={`Beranda ${resolvedSiteName}`}>
+                            <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-white shadow-lg">
+                                {logoUrl ? (
+                                    <img src={logoUrl} alt={`Logo ${resolvedSiteName}`} className="h-full w-full object-contain" />
+                                ) : (
+                                    <span className="text-xl font-bold text-slate-900">{resolvedSiteName.slice(0, 1)}</span>
+                                )}
+                            </span>
+                            <div>
+                                <p className="text-lg font-semibold uppercase tracking-[0.12em]">{resolvedSiteName}</p>
+                                <p className="text-[13px] font-medium text-white/80">{resolvedTagline}</p>
+                            </div>
+                        </Link>
+                        <div className="flex flex-1 flex-col gap-3 text-sm text-white/80 md:flex-row md:items-center md:justify-end md:gap-6">
+                            {phone ? (
+                                <span className="inline-flex items-center gap-2"><Phone className="h-4 w-4" aria-hidden />{phone}</span>
+                            ) : null}
+                            {email ? (
+                                <span className="inline-flex items-center gap-2"><Mail className="h-4 w-4" aria-hidden />{email}</span>
+                            ) : null}
+                            {socialLinks.length > 0 ? (
+                                <nav aria-label="Media sosial" className="flex flex-wrap items-center gap-2">
+                                    {socialLinks.map((link, index) => (
+                                        <Link
+                                            key={`${link.url}-${index}`}
+                                            href={link.url ?? '#'}
+                                            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white/80 transition hover:bg-white/20 hover:text-white"
+                                        >
+                                            {link.label ?? 'Sosial'}
+                                        </Link>
+                                    ))}
+                                </nav>
+                            ) : null}
+                            <Link
+                                href="#rss"
+                                className="inline-flex items-center gap-1 uppercase tracking-[0.2em] text-white/70 transition hover:text-white"
+                            >
+                                <Rss className="h-4 w-4" /> RSS
+                            </Link>
+                        </div>
+                    </div>
+                </div>
 
-  return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur">
-        <Container className="flex items-center gap-3 py-3">
-          <Link href="/" className="flex items-center gap-2 font-semibold text-slate-900">
-            <School className="h-6 w-6" aria-hidden /> {siteName}
-          </Link>
-          <nav className="ml-auto hidden items-center gap-2 md:flex">
-            {navLinks.map((item) => {
-              const normalized = item.href.replace(/#.*/, '');
-              const isActive =
-                activeHref === normalized ||
-                (normalized !== '/' && activeHref.startsWith(`${normalized}/`));
-              const IconComponent = item.icon ?? Circle;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-label={item.label}
-                  className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-xl border text-sm transition',
-                    isActive
-                      ? 'border-slate-900 bg-slate-900 text-white'
-                      : 'border-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-900',
-                  )}
-                >
-                  <IconComponent className="h-5 w-5" aria-hidden />
-                  <span className="sr-only">{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-          {showSearch ? (
-            <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden />
-              <input
-                type="search"
-                placeholder="Cari..."
-                aria-label="Cari situs"
-                className="h-10 rounded-xl border bg-white/70 py-2 pl-9 pr-3 text-sm"
-              />
-            </div>
-          ) : null}
-          <Link
-            href={whatsappHref}
-            className="hidden items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white sm:inline-flex"
-          >
-            <MessageCircle className="h-4 w-4" aria-hidden /> WhatsApp
-          </Link>
-          <button
-            type="button"
-            onClick={() => setMobileOpen((value) => !value)}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-100 md:hidden"
-            aria-expanded={mobileOpen}
-            aria-label="Toggle navigation"
-          >
-            {mobileOpen ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
-          </button>
-        </Container>
-        {mobileOpen ? (
-          <div className="md:hidden border-t bg-white shadow-sm">
-            <Container className="py-3">
-              <div className="grid grid-cols-4 gap-3">
-                {navLinks.map((item) => {
-                  const normalized = item.href.replace(/#.*/, '');
-                  const isActive =
-                    activeHref === normalized ||
-                    (normalized !== '/' && activeHref.startsWith(`${normalized}/`));
-                  const IconComponent = item.icon ?? Circle;
-                  return (
-                    <Link
-                      key={`mobile-${item.href}`}
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={cn(
-                        'flex flex-col items-center gap-1 rounded-xl border px-2 py-2 text-xs font-medium transition',
-                        isActive
-                          ? 'border-slate-900 bg-slate-900 text-white'
-                          : 'border-slate-200 text-slate-600 hover:border-slate-400 hover:text-slate-900',
-                      )}
-                    >
-                      <IconComponent className="h-5 w-5" aria-hidden />
-                      <span className="text-[11px] leading-none">{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-              <Link
-                href={whatsappHref}
-                onClick={() => setMobileOpen(false)}
-                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
-              >
-                <MessageCircle className="h-4 w-4" aria-hidden /> WhatsApp
-              </Link>
-            </Container>
-          </div>
-        ) : null}
-      </header>
+                <div className="border-t border-slate-900/10 bg-slate-800 text-white">
+                    <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
+                        <nav className="hidden flex-1 items-center gap-1 text-[13px] font-semibold uppercase tracking-[0.2em] md:flex">
+                            {NAV_ITEMS.map((item) => {
+                                const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
+                                return (
+                                    <Link
+                                        key={item.id}
+                                        href={item.href}
+                                        data-active={active}
+                                        className="rounded-md px-3 py-2 transition hover:bg-white/15 data-[active=true]:bg-white data-[active=true]:text-slate-900"
+                                    >
+                                        {item.label}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                        <div className="hidden items-center gap-3 md:flex">
+                            <form className="relative">
+                                <input
+                                    type="search"
+                                    placeholder="Pencarian..."
+                                    className="h-9 rounded-full border border-white/40 bg-white/20 px-9 text-xs font-medium text-white placeholder:text-white/70 focus:border-white focus:bg-white/30 focus:outline-none"
+                                />
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/80" aria-hidden />
+                            </form>
+                            <ThemeToggle />
+                        </div>
+                        <button
+                            type="button"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-white/30 bg-white/10 md:hidden"
+                            onClick={() => setMobileOpen((prev) => !prev)}
+                            aria-expanded={mobileOpen}
+                            aria-controls="public-mobile-nav"
+                        >
+                            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                        </button>
+                    </div>
+                    {mobileOpen ? (
+                        <div id="public-mobile-nav" className="border-t border-white/20 bg-slate-800 px-4 py-3 text-sm">
+                            <nav className="space-y-1">
+                                {NAV_ITEMS.map((item) => {
+                                    const active = item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
+                                    return (
+                                        <Link
+                                            key={item.id}
+                                            href={item.href}
+                                            data-active={active}
+                                            className="block rounded-md px-3 py-2 font-semibold uppercase tracking-[0.2em] transition hover:bg-white/10 data-[active=true]:bg-white data-[active=true]:text-slate-900"
+                                        >
+                                            {item.label}
+                                        </Link>
+                                    );
+                                })}
+                            </nav>
+                        </div>
+                    ) : null}
+                </div>
+            </header>
 
-      <main>{children}</main>
+            <main id="main-content" className="bg-white">
+                {children}
+            </main>
 
-      <footer className="mt-20 border-t">
-        <Container className="grid grid-cols-12 gap-6 py-10">
-          <div className="col-span-12 md:col-span-5">
-            <p className="flex items-center gap-2 font-semibold text-slate-900">
-              <School className="h-5 w-5" aria-hidden /> {siteName}
-            </p>
-            {settings.tagline ? (
-              <p className="mt-2 max-w-prose text-sm text-slate-600">{settings.tagline}</p>
-            ) : (
-              <p className="mt-2 max-w-prose text-sm text-slate-600">
-                Sekolah inklusif yang mendukung bakat setiap anak melalui program akademik dan non-akademik.
-              </p>
-            )}
-            <div className="mt-3 flex flex-col gap-1 text-sm text-slate-500">
-              <span className="inline-flex items-center gap-2">
-                <MapPin className="h-4 w-4" aria-hidden /> {address}
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <Phone className="h-4 w-4" aria-hidden /> {phone}
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <Mail className="h-4 w-4" aria-hidden /> {email}
-              </span>
-            </div>
-          </div>
-          <div className="col-span-6 md:col-span-3">
-            <p className="font-medium text-slate-900">Tautan</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              {navLinks.slice(1).map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className="hover:underline">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="col-span-6 md:col-span-4">
-            <p className="font-medium text-slate-900">Jam Layanan</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li>Sen-Jum: 07.00-15.00</li>
-              <li>Sab: 08.00-12.00</li>
-              <li>Min & Libur: Tutup</li>
-            </ul>
-          </div>
-        </Container>
-        <div className="border-t py-4 text-center text-xs text-slate-500">
-          {'�'} {currentYear} {siteName}. All rights reserved.
+            <footer className="mt-12 border-t border-slate-200/80 bg-slate-900 text-white">
+                <div className="bg-slate-800/80">
+                    <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <p className="text-lg font-semibold uppercase tracking-[0.2em]">{resolvedSiteName}</p>
+                            <p className="mt-3 text-sm text-white/80">{resolvedTagline}</p>
+                            {address ? (
+                                <p className="mt-4 inline-flex items-start gap-2 text-sm text-white/70">
+                                    <MapPin className="mt-1 h-4 w-4 flex-shrink-0" />
+                                    <span>{address}</span>
+                                </p>
+                            ) : null}
+                        </div>
+                        <div>
+                            <p className="text-lg font-semibold uppercase tracking-[0.2em]">Kontak</p>
+                            <div className="mt-3 space-y-2 text-sm text-white/80">
+                                {phone ? (
+                                    <a href={`tel:${phone.replace(/\s+/g, '')}`} className="flex items-center gap-2 hover:text-white">
+                                        <Phone className="h-4 w-4" />
+                                        <span>{phone}</span>
+                                    </a>
+                                ) : null}
+                                {sharedSettings?.whatsapp ? (
+                                    <a
+                                        href={`https://wa.me/${sharedSettings.whatsapp.replace(/[^0-9]/g, '')}`}
+                                        className="flex items-center gap-2 hover:text-white"
+                                    >
+                                        <Phone className="h-4 w-4" />
+                                        <span>WhatsApp {sharedSettings.whatsapp}</span>
+                                    </a>
+                                ) : null}
+                                {email ? (
+                                    <a href={`mailto:${email}`} className="flex items-center gap-2 hover:text-white">
+                                        <Mail className="h-4 w-4" />
+                                        <span>{email}</span>
+                                    </a>
+                                ) : null}
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-lg font-semibold uppercase tracking-[0.2em]">Jam Layanan</p>
+                            <div className="mt-3 space-y-2 text-sm text-white/80">
+                                {footerHours.length > 0 ? (
+                                    footerHours.map((slot, index) => {
+                                        const label = slot?.day ?? slot?.label ?? `Hari ${index + 1}`;
+                                        const schedule = slot?.value ?? [slot?.open, slot?.close].filter(Boolean).join(' - ');
+                                        return (
+                                            <div key={`${label}-${index}`} className="space-y-1 rounded-md bg-white/5 p-3">
+                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">{label}</p>
+                                                {schedule ? <p>{schedule}</p> : null}
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <p>Senin - Jumat, 07.00 - 15.00 WIB</p>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-lg font-semibold uppercase tracking-[0.2em]">Tetap Terhubung</p>
+                            <p className="mt-3 text-sm text-white/80">
+                                Ikuti pembaruan terbaru kami mengenai kegiatan belajar, dukungan orang tua, dan kolaborasi komunitas.
+                            </p>
+                            {socialLinks.length > 0 ? (
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    {socialLinks.map((link, index) => (
+                                        <Link
+                                            key={`${link.url}-${index}`}
+                                            href={link.url ?? '#'}
+                                            className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-900 transition hover:bg-amber-300"
+                                        >
+                                            {link.label ?? 'Ikuti Kami'}
+                                        </Link>
+                                    ))}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+                <div className="border-t border-white/10 bg-slate-950/80">
+                    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-4 text-xs text-white/70 sm:flex-row sm:items-center sm:justify-between">
+                        <p>&copy; {year} {resolvedSiteName}. Hak cipta dilindungi.</p>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Link href="/kebijakan-privasi" className="hover:text-white">
+                                Kebijakan Privasi
+                            </Link>
+                            <Link href="/sitemap" className="hover:text-white">
+                                Peta Situs
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </footer>
         </div>
-      </footer>
-    </div>
-  );
+    );
 }
-
-function buildWhatsAppLink(phone: string) {
-  const digits = phone.replace(/\D/g, '');
-  return digits ? `https://wa.me/${digits}` : 'https://wa.me/6281334363019';
-}
-
-export { DEFAULT_NAV_LINKS };

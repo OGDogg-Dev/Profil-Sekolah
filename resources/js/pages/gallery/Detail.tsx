@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
 import { ArrowLeft, ArrowUpRight, Camera, ImageIcon } from 'lucide-react';
-import PublicLayout from '@/layouts/PublicLayout';
+import PublicLayout from '@/layouts/public/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import AccessibleVideo from '@/components/vocational/AccessibleVideo';
 import Card from '@/components/ui/card';

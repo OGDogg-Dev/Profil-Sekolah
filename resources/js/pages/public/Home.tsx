@@ -1,10 +1,17 @@
-import { Head, Link } from '@inertiajs/react';
-import PublicLayout from '@/layouts/PublicLayout';
-import ProgramGrid from '@/components/vocational/ProgramGrid';
-import AlbumPreview from '@/components/home/AlbumPreview';
-import EventList from '@/components/home/EventList';
-import PostList from '@/components/home/PostList';
-import type { AlbumSummary, EventSummary, PostSummary } from '@/features/content/types';
+import { Head, Link, usePage } from '@inertiajs/react';
+import {
+    ArrowRight,
+    CalendarDays,
+    GraduationCap,
+    MapPin,
+    MessageCircle,
+    Newspaper,
+    PhoneCall,
+    Sparkles,
+    Users,
+} from 'lucide-react';
+import PublicLayout from '@/layouts/public/PublicLayout';
+import type { EventSummary, PostSummary } from '@/features/content/types';
 import type { VocationalProgram } from '@/features/vocational/types';
 
 interface HomeProps {
@@ -20,316 +27,520 @@ interface HomeProps {
     programs: VocationalProgram[];
     posts: PostSummary[];
     events: EventSummary[];
-    albums: AlbumSummary[];
 }
 
-const placeholderImage = 'https://placehold.co/1600x900?text=Profil+Sekolah+Inklusif';
+interface SharedSettings {
+    whatsapp?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+}
 
-export default function Home({ settings, profile, programs, posts, events, albums }: HomeProps) {
-    const siteName = settings?.site_name ?? 'SMK Negeri 10 Kuningan';
-    const tagline = settings?.tagline ?? 'Mewujudkan pendidikan vokasional yang inklusif dan berdaya saing.';
+interface SharedProps {
+    settings?: SharedSettings | null;
+}
+
+const heroBadges = [
+    'Sekolah inklusif',
+    'Terakreditasi A',
+    'Jejaring Industri Nasional',
+    'Pendamping profesional',
+];
+
+const inclusionFocus = [
+    {
+        title: 'Aksesibilitas Menyeluruh',
+        description: 'Ruang kelas, laboratorium, dan fasilitas umum yang dirancang untuk semua kebutuhan mobilitas.',
+    },
+    {
+        title: 'Pendampingan Individual',
+        description: 'Setiap peserta didik mendapatkan rencana belajar personal dan mentor khusus.',
+    },
+    {
+        title: 'Kolaborasi Orang Tua',
+        description: 'Pertemuan rutin, kanal konsultasi, dan pelibatan orang tua dalam proses belajar.',
+    },
+    {
+        title: 'Kemitraan Industri',
+        description: 'Program magang dan pelatihan bersama mitra dunia kerja yang ramah disabilitas.',
+    },
+];
+
+const testimonialFallback = [
+    {
+        name: 'Dwi Hartanti',
+        relation: 'Orang Tua Peserta Didik',
+        quote:
+            'Sekolah ini tidak hanya menerima, tetapi juga benar-benar memahami kebutuhan anak kami. Komunikasi dengan guru selalu terbuka.',
+    },
+    {
+        name: 'Bagas Pratama',
+        relation: 'Alumni Program Desain Grafis',
+        quote:
+            'Pendampingan vokasionalnya membuat saya percaya diri bekerja di industri kreatif. Lingkungannya suportif dan kolaboratif.',
+    },
+];
+
+const galleryHighlights = [
+    'Praktik kerja industri inklusif',
+    'Kegiatan konseling karier',
+    'Kolaborasi komunitas orang tua',
+    'Showcase karya peserta didik',
+];
+
+function formatDateRange(event: EventSummary) {
+    if (!event.start_at) {
+        return 'Jadwal menyusul';
+    }
+
+    const start = new Date(event.start_at);
+    const end = event.end_at ? new Date(event.end_at) : null;
+
+    const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+    });
+
+    if (!end) {
+        return dateFormatter.format(start);
+    }
+
+    const sameDay = start.toDateString() === end.toDateString();
+    if (sameDay) {
+        const timeFormatter = new Intl.DateTimeFormat('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+        return `${dateFormatter.format(start)} · ${timeFormatter.format(start)} - ${timeFormatter.format(end)}`;
+    }
+
+    return `${dateFormatter.format(start)} - ${dateFormatter.format(end)}`;
+}
+
+export default function Home({ settings, profile, programs, posts, events }: HomeProps) {
+    const { props } = usePage<SharedProps>();
+    const sharedSettings = props.settings ?? undefined;
+
+    const siteName = settings?.site_name ?? 'Sekolah Inklusif';
+    const tagline = settings?.tagline ?? 'Mewujudkan pendidikan vokasional yang ramah semua peserta didik.';
+
+    const contactNumber = sharedSettings?.whatsapp ?? sharedSettings?.phone ?? null;
+    const contactEmail = sharedSettings?.email ?? null;
+    const contactAddress = sharedSettings?.address ?? 'Jl. Pendidikan Inklusif No. 10, Kuningan';
 
     const featuredPost = posts[0] ?? null;
+    const otherPosts = posts.slice(1, 4);
+    const upcomingEvents = events.slice(0, 4);
     const highlightedPrograms = programs.slice(0, 4);
-    const latestPosts = posts.slice(0, 6);
-    const spotlightAlbums = albums.slice(0, 3);
-    const highlightedEvents = events.slice(0, 4);
 
-    const upcomingEvent = events.find((event) => new Date(event.start_at) >= new Date()) ?? events[0] ?? null;
+    const heroChecklist = [
+        'Pendamping guru inklusi bersertifikasi',
+        'Evaluasi berkala bersama orang tua',
+        'Ruang belajar adaptif dan aman',
+    ];
 
     const stats = [
-        { label: 'Program Vokasional', value: programs.length },
-        { label: 'Agenda Aktif', value: events.length },
-        { label: 'Publikasi', value: posts.length },
-        { label: 'Album Galeri', value: albums.length },
+        { label: 'Peserta Didik Aktif', value: 320, icon: <Users className="h-5 w-5 text-brand-600" aria-hidden /> },
+        { label: 'Program Vokasi', value: Math.max(highlightedPrograms.length, 4), icon: <GraduationCap className="h-5 w-5 text-brand-600" aria-hidden /> },
+        { label: 'Kemitraan Industri', value: 18, icon: <Sparkles className="h-5 w-5 text-brand-600" aria-hidden /> },
+        { label: 'Agenda Tahunan', value: Math.max(upcomingEvents.length, 8), icon: <CalendarDays className="h-5 w-5 text-brand-600" aria-hidden /> },
     ];
-
-    const commitments = [
-        {
-            title: 'Pembelajaran Adaptif',
-            description:
-                'Rencana pembelajaran yang fleksibel dan pendampingan sesuai kebutuhan peserta didik berkebutuhan khusus.',
-        },
-        {
-            title: 'Kolaborasi Industri',
-            description: 'Kemitraan dengan dunia usaha dan dunia industri untuk memberikan pengalaman kerja nyata.',
-        },
-        {
-            title: 'Lingkungan Inklusif',
-            description: 'Fasilitas aksesibel, komunitas suportif, dan budaya sekolah yang menjunjung keberagaman.',
-        },
-    ];
-
-    const heroImage = featuredPost?.cover_url ?? placeholderImage;
 
     return (
         <PublicLayout siteName={siteName} tagline={tagline}>
-            <Head title={`Beranda - ${siteName}`}>
-                <meta name="description" content={tagline} />
+            <Head title={`Profil Sekolah - ${siteName}`}>
+                <meta
+                    name="description"
+                    content={
+                        profile.excerpt ??
+                        'Sekolah vokasional inklusif dengan layanan personal, fasilitas aksesibel, dan jaringan industri ramah disabilitas.'
+                    }
+                />
             </Head>
 
-            <main className="bg-slate-50">
-                <section className="relative isolate overflow-hidden bg-slate-900 text-white">
-                    <div
-                        aria-hidden
-                        className="absolute inset-0 bg-cover bg-center opacity-50"
-                        style={{ backgroundImage: `url(${heroImage})` }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80" />
-                    <div className="relative mx-auto grid w-full max-w-6xl gap-10 px-4 py-20 lg:grid-cols-[1.2fr_1fr]">
-                        <div className="space-y-6">
-                            <span className="inline-flex items-center rounded-full bg-emerald-400/20 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
-                                Portal Publik
-                            </span>
-                            <div className="space-y-4">
-                                <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                                    {siteName}: Ruang Berkembang untuk Semua
-                                </h1>
-                                <p className="max-w-2xl text-base text-slate-100 sm:text-lg">
-                                    {profile.excerpt ??
-                                        'Kami menghadirkan pembelajaran vokasional yang berpihak pada keberagaman dan memastikan setiap peserta didik mendapatkan dukungan optimal untuk meraih cita-cita.'}
-                                </p>
-                            </div>
-                            <div className="flex flex-wrap gap-3">
-                                <Link
-                                    href="/profil"
-                                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-200 hover:text-slate-900"
+            <section className="bg-slate-100">
+                <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 pb-12 pt-10 lg:grid-cols-[1.35fr_1fr]">
+                    <div className="space-y-8">
+                        <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+                            {heroBadges.map((badge) => (
+                                <span key={badge} className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">
+                                    {badge}
+                                </span>
+                            ))}
+                        </div>
+                        <div className="space-y-4">
+                            <p className="text-sm font-semibold uppercase tracking-[0.4em] text-brand-600">Profil Sekolah</p>
+                            <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">{profile.title}</h1>
+                            <p className="max-w-2xl text-base text-slate-600 sm:text-lg">
+                                {profile.excerpt ??
+                                    'Kami berkomitmen menyediakan pembelajaran vokasional berkualitas yang memberi ruang tumbuh untuk setiap peserta didik, tanpa terkecuali.'}
+                            </p>
+                        </div>
+                        <ul className="grid gap-3 text-sm text-slate-700 sm:grid-cols-3">
+                            {heroChecklist.map((item) => (
+                                <li key={item} className="flex items-start gap-2 rounded-2xl bg-white p-3 shadow-sm">
+                                    <span className="mt-1 inline-flex h-2.5 w-2.5 flex-shrink-0 rounded-full bg-brand-500" />
+                                    <span>{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="flex flex-wrap gap-3">
+                            <Link
+                                href="/vokasional"
+                                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+                            >
+                                Lihat Program Vokasi <ArrowRight className="h-4 w-4" />
+                            </Link>
+                            <Link
+                                href="/hubungi-kami"
+                                className="inline-flex items-center gap-2 rounded-full border border-brand-200 px-5 py-2 text-sm font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-50"
+                            >
+                                Konsultasi Dengan Kami
+                            </Link>
+                        </div>
+                    </div>
+
+                    <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Hubungi Tim Layanan</p>
+                        <p className="mt-3 text-lg font-semibold text-slate-900">Butuh panduan lebih lanjut?</p>
+                        <p className="mt-2 text-sm text-slate-600">
+                            Tim kami siap membantu orang tua, calon peserta didik, dan mitra industri untuk memahami dukungan inklusi yang tersedia.
+                        </p>
+                        <div className="mt-5 space-y-3 text-sm text-slate-700">
+                            {contactNumber ? (
+                                <a
+                                    href={`https://wa.me/${contactNumber.replace(/[^0-9]/g, '')}`}
+                                    className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-brand-300 hover:bg-brand-50"
                                 >
-                                    Jelajahi Profil ↗
-                                </Link>
-                                <Link
-                                    href="/kontak"
-                                    className="inline-flex items-center gap-2 rounded-full border border-white/70 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                                    <PhoneCall className="h-4 w-4 text-brand-600" />
+                                    <span>{contactNumber}</span>
+                                </a>
+                            ) : null}
+                            {contactEmail ? (
+                                <a
+                                    href={`mailto:${contactEmail}`}
+                                    className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-brand-300 hover:bg-brand-50"
                                 >
-                                    Hubungi Kami
-                                </Link>
+                                    <MessageCircle className="h-4 w-4 text-brand-600" />
+                                    <span>{contactEmail}</span>
+                                </a>
+                            ) : null}
+                            <div className="flex items-start gap-3 rounded-2xl border border-slate-200 px-4 py-3">
+                                <MapPin className="mt-1 h-4 w-4 text-brand-600" />
+                                <span>{contactAddress}</span>
                             </div>
-                            {featuredPost && (
-                                <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-                                    <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Sorotan Terbaru</p>
+                        </div>
+                        <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500">
+                            <p className="font-semibold uppercase tracking-[0.3em] text-brand-500">Jam Konsultasi</p>
+                            <p className="mt-2 leading-relaxed">Senin - Jumat · 08.00 - 15.00 WIB</p>
+                            <p className="mt-1 leading-relaxed">Sabtu · Penjadwalan melalui janji temu</p>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <section className="bg-white">
+                <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 pb-12 sm:grid-cols-2 lg:grid-cols-4">
+                    {stats.map((stat) => (
+                        <div key={stat.label} className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">{stat.icon}</div>
+                            <div>
+                                <p className="text-2xl font-semibold text-slate-900">{stat.value.toString().padStart(2, '0')}</p>
+                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">{stat.label}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="bg-slate-50">
+                <div className="mx-auto w-full max-w-6xl px-4 py-12">
+                    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Berita Terbaru</p>
+                            <h2 className="text-2xl font-semibold text-slate-900">Cerita terbaru dari komunitas sekolah</h2>
+                        </div>
+                        <Link href="/berita" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-600">
+                            Arsip Berita <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </header>
+                    <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+                        {featuredPost ? (
+                            <Link
+                                href={`/berita/${featuredPost.slug}`}
+                                className="group flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+                            >
+                                {featuredPost.cover_url ? (
+                                    <img
+                                        src={featuredPost.cover_url}
+                                        alt={featuredPost.title}
+                                        className="h-60 w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                                    />
+                                ) : null}
+                                <div className="flex flex-1 flex-col gap-3 p-6">
+                                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-500">
+                                        <Newspaper className="h-4 w-4" /> Sorotan Utama
+                                    </span>
+                                    <h3 className="text-xl font-semibold text-slate-900 group-hover:text-brand-700">{featuredPost.title}</h3>
+                                    {featuredPost.excerpt ? <p className="text-sm text-slate-600">{featuredPost.excerpt}</p> : null}
+                                    <p className="mt-auto text-xs font-semibold uppercase tracking-[0.3em] text-brand-500">
+                                        {new Date(featuredPost.published_at ?? featuredPost.created_at ?? '').toLocaleDateString('id-ID', {
+                                            day: '2-digit',
+                                            month: 'long',
+                                            year: 'numeric',
+                                        })}
+                                    </p>
+                                </div>
+                            </Link>
+                        ) : (
+                            <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-500">
+                                <Newspaper className="h-10 w-10" />
+                                <p className="mt-3 text-sm">Belum ada berita yang dipublikasikan.</p>
+                            </div>
+                        )}
+                        <div className="space-y-4">
+                            {otherPosts.length > 0 ? (
+                                otherPosts.map((post) => (
                                     <Link
-                                        href={`/berita/${featuredPost.slug}`}
-                                        className="mt-2 block text-lg font-semibold text-white hover:text-amber-300"
+                                        key={post.id}
+                                        href={`/berita/${post.slug}`}
+                                        className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-300 hover:bg-brand-50"
                                     >
-                                        {featuredPost.title}
+                                        {post.cover_url ? (
+                                            <img
+                                                src={post.cover_url}
+                                                alt={post.title}
+                                                className="h-20 w-28 rounded-2xl object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-20 w-28 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                                                Berita
+                                            </div>
+                                        )}
+                                        <div className="flex flex-1 flex-col gap-2">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-500">
+                                                {new Date(post.published_at ?? post.created_at ?? '').toLocaleDateString('id-ID', {
+                                                    day: '2-digit',
+                                                    month: 'long',
+                                                    year: 'numeric',
+                                                })}
+                                            </p>
+                                            <h4 className="text-base font-semibold text-slate-900 group-hover:text-brand-700">{post.title}</h4>
+                                            {post.excerpt ? <p className="text-sm text-slate-600 line-clamp-2">{post.excerpt}</p> : null}
+                                        </div>
                                     </Link>
-                                    {featuredPost.excerpt && (
-                                        <p className="mt-1 text-sm text-slate-100">{featuredPost.excerpt}</p>
-                                    )}
+                                ))
+                            ) : (
+                                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
+                                    Belum ada berita lainnya.
                                 </div>
                             )}
                         </div>
-                        <aside className="flex flex-col justify-between gap-6 rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur">
-                            <div>
-                                <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Agenda Berikutnya</p>
-                                {upcomingEvent ? (
-                                    <div className="mt-3 space-y-2">
-                                        <p className="text-sm font-medium text-amber-200">
-                                            {new Date(upcomingEvent.start_at ?? '').toLocaleDateString('id-ID', {
-                                                day: '2-digit',
-                                                month: 'long',
-                                                year: 'numeric',
-                                            })}
-                                        </p>
-                                        <Link
-                                            href={`/agenda/${upcomingEvent.slug}`}
-                                            className="block text-lg font-semibold text-white hover:text-amber-300"
-                                        >
-                                            {upcomingEvent.title}
-                                        </Link>
-                                        {upcomingEvent.location ? (
-                                            <p className="text-sm text-slate-100">{upcomingEvent.location}</p>
+                    </div>
+                </div>
+            </section>
+
+            <section className="bg-white">
+                <div className="mx-auto w-full max-w-6xl px-4 py-12">
+                    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Agenda Terdekat</p>
+                            <h2 className="text-2xl font-semibold text-slate-900">Kolaborasi dan kegiatan komunitas</h2>
+                        </div>
+                        <Link href="/agenda" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-600">
+                            Lihat Semua Agenda <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </header>
+                    <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+                        <div className="hidden grid-cols-[1fr_0.7fr_0.6fr_0.5fr] bg-white px-6 py-4 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 md:grid">
+                            <span>Agenda</span>
+                            <span>Jadwal</span>
+                            <span>Lokasi</span>
+                            <span>Status</span>
+                        </div>
+                        <div className="divide-y divide-slate-200">
+                            {upcomingEvents.length > 0 ? (
+                                upcomingEvents.map((event) => (
+                                    <Link
+                                        key={event.id}
+                                        href={`/agenda/${event.slug}`}
+                                        className="grid gap-4 px-6 py-5 transition hover:bg-white md:grid-cols-[1fr_0.7fr_0.6fr_0.5fr]"
+                                    >
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold text-slate-900">{event.title}</p>
+                                            {event.summary ? <p className="text-xs text-slate-500">{event.summary}</p> : null}
+                                        </div>
+                                        <div className="text-sm text-slate-700">{formatDateRange(event)}</div>
+                                        <div className="text-sm text-slate-700">{event.location ?? 'Daring / Luring'}</div>
+                                        <div>
+                                            <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                                {event.status ?? 'Terjadwal'}
+                                            </span>
+                                        </div>
+                                    </Link>
+                                ))
+                            ) : (
+                                <p className="px-6 py-8 text-center text-sm text-slate-500">Belum ada agenda terdekat.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="bg-slate-50">
+                <div className="mx-auto w-full max-w-6xl px-4 py-12">
+                    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Program Vokasi Inklusif</p>
+                            <h2 className="text-2xl font-semibold text-slate-900">Jalur belajar adaptif dengan dukungan profesional</h2>
+                            <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                                Program dirancang bersama mitra industri dan tenaga ahli terapi untuk memastikan kesiapan kerja dan kemandirian.
+                            </p>
+                        </div>
+                        <Link href="/vokasional" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-600">
+                            Lihat Semua Program <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </header>
+                    <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                        {highlightedPrograms.length > 0 ? (
+                            highlightedPrograms.map((program) => (
+                                <Link
+                                    key={program.id}
+                                    href={`/vokasional/${program.slug}`}
+                                    className="group flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-300 hover:bg-brand-50"
+                                >
+                                    <div className="flex flex-col gap-2">
+                                        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-500">
+                                            <GraduationCap className="h-4 w-4" />
+                                            {program.category ?? 'Program Unggulan'}
+                                        </span>
+                                        <h3 className="text-lg font-semibold text-slate-900 group-hover:text-brand-700">{program.name}</h3>
+                                        {program.short_description ? (
+                                            <p className="text-sm text-slate-600 line-clamp-3">{program.short_description}</p>
                                         ) : null}
                                     </div>
-                                ) : (
-                                    <p className="mt-2 text-sm text-slate-100">Belum ada agenda yang dijadwalkan.</p>
-                                )}
-                            </div>
-                            <div className="rounded-2xl bg-slate-900/70 p-4 shadow-lg">
-                                <p className="text-sm font-semibold text-white">
-                                    "Pendidikan adalah tiket menuju masa depan. Hari esok dimiliki oleh mereka yang menyiapkan dirinya hari ini."
-                                </p>
-                                <p className="mt-2 text-xs uppercase tracking-[0.3em] text-emerald-200">— Malcolm X</p>
-                            </div>
-                        </aside>
-                    </div>
-                </section>
-
-                <section className="border-t border-white/40 bg-slate-50">
-                    <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
-                        {stats.map((stat) => (
-                            <div key={stat.label} className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                                <p className="text-3xl font-semibold text-brand-600">{stat.value.toString().padStart(2, '0')}</p>
-                                <p className="mt-2 text-sm font-medium uppercase tracking-[0.2em] text-slate-500">{stat.label}</p>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                <section className="bg-white">
-                    <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 lg:grid-cols-[1.4fr_1fr]">
-                        <div className="space-y-6">
-                            <header className="space-y-3">
-                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Komitmen Kami</p>
-                                <h2 className="text-2xl font-semibold text-slate-900">
-                                    Membuka akses pendidikan vokasional yang ramah semua peserta didik
-                                </h2>
-                            </header>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {commitments.map((commitment) => (
-                                    <div
-                                        key={commitment.title}
-                                        className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5 shadow-sm"
-                                    >
-                                        <h3 className="text-lg font-semibold text-slate-900">{commitment.title}</h3>
-                                        <p className="mt-2 text-sm text-slate-600">{commitment.description}</p>
+                                    <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-brand-500">
+                                        {(program.focus_tags ?? []).slice(0, 3).map((tag) => (
+                                            <span key={tag} className="rounded-full bg-brand-100 px-3 py-1 text-brand-700">
+                                                {tag}
+                                            </span>
+                                        ))}
                                     </div>
-                                ))}
+                                </Link>
+                            ))
+                        ) : (
+                            <div className="sm:col-span-2 xl:col-span-4 rounded-3xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+                                Program belum tersedia.
                             </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            <section className="bg-white">
+                <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 lg:grid-cols-[1.2fr_1fr]">
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Fokus Inklusi</p>
+                        <h2 className="mt-3 text-2xl font-semibold text-slate-900">Lingkungan belajar yang aman dan suportif</h2>
+                        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                            {inclusionFocus.map((focus) => (
+                                <div key={focus.title} className="rounded-2xl bg-white/70 p-4">
+                                    <h3 className="text-base font-semibold text-slate-900">{focus.title}</h3>
+                                    <p className="mt-2 text-sm text-slate-600">{focus.description}</p>
+                                </div>
+                            ))}
                         </div>
-                        <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6 shadow-sm">
-                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
-                                Sambutan Kepala Sekolah
-                            </p>
-                            <h3 className="mt-3 text-xl font-semibold text-slate-900">Selamat Datang</h3>
-                            <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                                {profile.excerpt ??
-                                    'Terima kasih telah mengunjungi portal resmi kami. Mari berkolaborasi dalam menciptakan lingkungan belajar yang aman, ramah, dan penuh kesempatan.'}
-                            </p>
+                    </div>
+                    <aside className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">Kolaborasi Vokasi Inklusif</p>
+                        <h3 className="mt-3 text-xl font-semibold">Bersama mewujudkan masa depan yang setara</h3>
+                        <p className="mt-3 text-sm text-emerald-800">
+                            Buka peluang magang, dukungan beasiswa, atau program CSR dengan menghubungi tim layanan publik kami. Kami menyesuaikan kebutuhan kolaborasi agar inklusif untuk semua.
+                        </p>
+                        <Link
+                            href="/hubungi-kami"
+                            className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                        >
+                            Ajukan Kolaborasi <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </aside>
+                </div>
+            </section>
+
+            <section className="bg-slate-50">
+                <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 lg:grid-cols-[1.2fr_1fr]">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Testimoni</p>
+                        <h2 className="mt-3 text-2xl font-semibold text-slate-900">Cerita keberhasilan dari keluarga dan alumni</h2>
+                        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                            {testimonialFallback.map((testimonial) => (
+                                <div key={testimonial.name} className="flex h-full flex-col rounded-2xl bg-slate-50/70 p-4">
+                                    <p className="flex-1 text-sm text-slate-700">“{testimonial.quote}”</p>
+                                    <div className="mt-4 text-sm font-semibold text-slate-900">
+                                        {testimonial.name}
+                                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand-500">{testimonial.relation}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Kilas Galeri</p>
+                        <h3 className="mt-3 text-xl font-semibold text-slate-900">Momen yang kami dokumentasikan</h3>
+                        <ul className="mt-4 space-y-3 text-sm text-slate-600">
+                            {galleryHighlights.map((highlight) => (
+                                <li key={highlight} className="flex items-start gap-2">
+                                    <span className="mt-1 inline-flex h-2 w-2 flex-shrink-0 rounded-full bg-brand-500" />
+                                    <span>{highlight}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <Link
+                            href="/galeri"
+                            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-600"
+                        >
+                            Lihat Album Terbaru <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </aside>
+                </div>
+            </section>
+
+            <section className="bg-white">
+                <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 lg:grid-cols-[1fr_1.1fr]">
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Siap Berkunjung?</p>
+                        <h2 className="mt-3 text-2xl font-semibold text-slate-900">Jadwalkan tur kampus inklusif kami</h2>
+                        <p className="mt-3 text-sm text-slate-600">
+                            Kami menyambut kunjungan orang tua, calon peserta didik, dan mitra industri. Tim kami akan menyesuaikan tur sesuai kebutuhan aksesibilitas Anda.
+                        </p>
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <Link
+                                href="/hubungi-kami"
+                                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+                            >
+                                Jadwalkan Kunjungan <ArrowRight className="h-4 w-4" />
+                            </Link>
                             <Link
                                 href="/profil"
-                                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
+                                className="inline-flex items-center gap-2 rounded-full border border-brand-200 px-5 py-2 text-sm font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-50"
                             >
-                                Baca profil lengkap ↗
+                                Pelajari Kurikulum
                             </Link>
                         </div>
                     </div>
-                </section>
-
-                <section className="border-t border-slate-200 bg-slate-50">
-                    <div className="mx-auto w-full max-w-6xl px-4 py-12">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Program Vokasional</p>
-                                <h2 className="text-2xl font-semibold text-slate-900">Kurikulum adaptif berbasis industri</h2>
-                                <p className="mt-2 max-w-xl text-sm text-slate-600">
-                                    Pilihan program yang dirancang bersama mitra industri serta menyediakan dukungan personal untuk peserta didik berkebutuhan khusus.
-                                </p>
-                            </div>
-                            <Link
-                                href="/vokasional"
-                                className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
-                            >
-                                Lihat semua program ↗
-                            </Link>
-                        </div>
-                        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <ProgramGrid items={highlightedPrograms} />
-                        </div>
+                    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm">
+                        <iframe
+                            title="Lokasi Sekolah Inklusif"
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3956.3814739646857!2d108.483375!3d-7.417465!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6f2bb2c664f0f5%3A0x2cdb5090c962f8d5!2sSMK%20Negeri%2010%20Kuningan!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
+                            className="h-[320px] w-full border-0"
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            allowFullScreen
+                        />
                     </div>
-                </section>
-
-                <section className="border-t border-slate-200 bg-white">
-                    <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 lg:grid-cols-[1.4fr_1fr]">
-                        <div>
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Berita Terbaru</p>
-                                    <h2 className="text-2xl font-semibold text-slate-900">Cerita dari komunitas sekolah</h2>
-                                </div>
-                                <Link
-                                    href="/berita"
-                                    className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
-                                >
-                                    Arsip berita ↗
-                                </Link>
-                            </div>
-                            <div className="mt-6">
-                                <PostList items={latestPosts} />
-                            </div>
-                        </div>
-                        <aside className="space-y-6">
-                            <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
-                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Agenda Sekolah</p>
-                                <p className="mt-2 text-sm text-slate-600">
-                                    Ikuti perkembangan kegiatan pelatihan, workshop, dan seleksi peserta didik.
-                                </p>
-                                <div className="mt-5">
-                                    <EventList items={highlightedEvents} />
-                                </div>
-                                <Link
-                                    href="/agenda"
-                                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
-                                >
-                                    Agenda lengkap ↗
-                                </Link>
-                            </div>
-                            <div className="rounded-3xl border border-blue-200 bg-blue-50 p-6 text-slate-900 shadow-sm">
-                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Butuh Informasi Tambahan?</p>
-                                <p className="mt-2 text-sm text-slate-700">
-                                    Tim layanan publik siap membantu orang tua, mitra industri, dan masyarakat yang ingin berkolaborasi.
-                                </p>
-                                <Link
-                                    href="/kontak"
-                                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-600"
-                                >
-                                    Hubungi layanan publik ↗
-                                </Link>
-                            </div>
-                        </aside>
-                    </div>
-                </section>
-
-                <section className="border-t border-slate-200 bg-slate-50">
-                    <div className="mx-auto w-full max-w-6xl px-4 py-12">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">Galeri Terbaru</p>
-                                <h2 className="text-2xl font-semibold text-slate-900">Kilasan aktivitas peserta didik</h2>
-                                <p className="mt-2 max-w-xl text-sm text-slate-600">
-                                    Dokumentasi kegiatan praktik kerja, karya kreatif, dan momen kebersamaan di lingkungan sekolah.
-                                </p>
-                            </div>
-                            <Link
-                                href="/galeri"
-                                className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
-                            >
-                                Semua album ↗
-                            </Link>
-                        </div>
-                        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <AlbumPreview items={spotlightAlbums} />
-                        </div>
-                    </div>
-                </section>
-
-                <section className="border-t border-slate-200 bg-brand-600">
-                    <div className="mx-auto w-full max-w-6xl px-4 py-12 text-white">
-                        <div className="grid gap-6 lg:grid-cols-[2fr_1fr] lg:items-center">
-                            <div className="space-y-4">
-                                <h2 className="text-2xl font-semibold">Siap berkolaborasi dengan sekolah inklusif?</h2>
-                                <p className="max-w-2xl text-sm text-white/80">
-                                    Kami membuka ruang kolaborasi dengan lembaga, perusahaan, dan komunitas untuk menciptakan akses karier yang lebih luas bagi peserta didik vokasional. Mari wujudkan lingkungan belajar yang adil dan berkesinambungan.
-                                </p>
-                            </div>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                                <Link
-                                    href="/kontak"
-                                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-700 transition hover:bg-amber-200"
-                                >
-                                    Jadwalkan Kunjungan ↗
-                                </Link>
-                                <Link
-                                    href="/berita"
-                                    className="inline-flex items-center justify-center gap-2 rounded-full border border-white/80 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-                                >
-                                    Lihat cerita terbaru
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </main>
+                </div>
+            </section>
         </PublicLayout>
     );
 }

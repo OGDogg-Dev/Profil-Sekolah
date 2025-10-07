@@ -5,6 +5,7 @@ import {
     Home,
     Image as ImageIcon,
     Layers,
+    Link as LinkIcon,
     LucideIcon,
     Mail,
     MapPin,
@@ -43,13 +44,13 @@ type SharedSettings = {
     site_name?: string | null;
     tagline?: string | null;
     logo_url?: string | null;
+    og_image_url?: string | null;
     phone?: string | null;
     whatsapp?: string | null;
     email?: string | null;
     address?: string | null;
     social?: SocialLink[] | null;
     footer_hours?: FooterHour[] | null;
-    og_image_url?: string | null;
 };
 
 type SharedProps = {
@@ -86,6 +87,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
         'Sekolah Inklusif';
     const resolvedTagline = tagline ?? sharedSettings?.tagline ?? 'Membangun masa depan yang ramah untuk semua.';
     const logoUrl = sharedSettings?.logo_url ?? null;
+    const ogImageUrl = sharedSettings?.og_image_url ?? null;
 
     const phone = sharedSettings?.phone ?? sharedSettings?.whatsapp ?? null;
     const email = sharedSettings?.email ?? null;
@@ -222,13 +224,35 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                 <div className="bg-slate-800/80">
                     <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
-                            <p className="text-lg font-semibold uppercase tracking-[0.2em]">{resolvedSiteName}</p>
-                            <p className="mt-3 text-sm text-white/80">{resolvedTagline}</p>
+                            <div className="flex items-center gap-3">
+                                <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30">
+                                    {logoUrl ? (
+                                        <img src={logoUrl} alt={`Logo ${resolvedSiteName}`} className="h-full w-full object-contain" />
+                                    ) : (
+                                        <span className="text-xl font-semibold text-emerald-400">{resolvedSiteName.slice(0, 1)}</span>
+                                    )}
+                                </span>
+                                <div>
+                                    <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-200">Profil Sekolah</p>
+                                    <p className="text-lg font-semibold">{resolvedSiteName}</p>
+                                </div>
+                            </div>
+                            <p className="mt-4 text-sm text-white/80">{resolvedTagline}</p>
                             {address ? (
                                 <p className="mt-4 inline-flex items-start gap-2 text-sm text-white/70">
                                     <MapPin className="mt-1 h-4 w-4 flex-shrink-0" />
                                     <span>{address}</span>
                                 </p>
+                            ) : null}
+                            {ogImageUrl ? (
+                                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">OG Image</p>
+                                    <img
+                                        src={ogImageUrl}
+                                        alt={`Gambar OpenGraph ${resolvedSiteName}`}
+                                        className="mt-3 h-28 w-full rounded-xl object-cover"
+                                    />
+                                </div>
                             ) : null}
                         </div>
                         <div>
@@ -282,9 +306,12 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                                     {socialLinks.map((link, index) => (
                                         <Link
                                             key={`${link.url}-${index}`}
-                                            href={link.url ?? '#'}
+                                            href={link.url}
                                             className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-900 transition hover:bg-amber-300"
+                                            target="_blank"
+                                            rel="noreferrer"
                                         >
+                                            <LinkIcon className="h-4 w-4" aria-hidden />
                                             {link.label ?? 'Ikuti Kami'}
                                         </Link>
                                     ))}

@@ -14,15 +14,37 @@ type Flash = {
     success?: string;
 };
 
+type SocialLink = {
+    label?: string | null;
+    url?: string | null;
+    icon?: string | null;
+};
+
+type FooterHour = {
+    day?: string | null;
+    label?: string | null;
+    time?: string | null;
+    value?: string | null;
+    open?: string | null;
+    close?: string | null;
+};
+
+type SharedSettings = {
+    site_name?: string | null;
+    name?: string | null;
+    tagline?: string | null;
+    address?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    email?: string | null;
+    social?: SocialLink[] | null;
+    footer_hours?: FooterHour[] | null;
+};
+
 type InertiaPageProps = {
     flash?: Flash;
     errors?: Record<string, string>;
-    settings?: {
-        site_name?: string;
-        school_phone?: string | null;
-        school_email?: string | null;
-        school_address?: string | null;
-    };
+    settings?: SharedSettings | null;
 };
 
 const initialFormState: FormState = {
@@ -36,6 +58,7 @@ export default function Contact({ title }: { title: string }) {
     const { props } = usePage<InertiaPageProps>();
     const flash = props?.flash;
     const errors = props?.errors ?? {};
+    const sharedSettings = props?.settings ?? null;
     const [form, setForm] = useState<FormState>(initialFormState);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,14 +77,61 @@ export default function Contact({ title }: { title: string }) {
         });
     };
 
-    const siteName = props?.settings?.site_name ?? 'SMK Negeri 10 Kuningan';
-    const description =
-        'Hubungi tim SMK Negeri 10 Kuningan untuk konsultasi kemitraan, layanan siswa, maupun pertanyaan media kapan pun Anda perlukan.';
+    const siteName =
+        sharedSettings?.site_name?.trim() ||
+        sharedSettings?.name?.trim() ||
+        'Sekolah Inklusif';
 
-    const officeAddress = props?.settings?.school_address?.trim() ||
+    const description =
+        sharedSettings?.tagline?.trim() ||
+        'Hubungi tim sekolah untuk konsultasi kemitraan, layanan siswa, maupun pertanyaan media kapan pun Anda perlukan.';
+
+    const officeAddress = sharedSettings?.address?.trim() ||
         'Jl. Pendidikan No. 11, Desa Kadugede, Kecamatan Kadugede, Kabupaten Kuningan, Jawa Barat';
-    const phoneNumber = props?.settings?.school_phone?.trim() || '0232-123456';
-    const emailAddress = props?.settings?.school_email?.trim() || 'info@profilsekolah.test';
+
+    const phoneNumber = sharedSettings?.phone?.trim() || '';
+    const whatsappNumber = sharedSettings?.whatsapp?.trim() || '';
+    const emailAddress = sharedSettings?.email?.trim() || '';
+
+    const phoneHref = phoneNumber ? `tel:${phoneNumber.replace(/[^\d+]/g, '')}` : undefined;
+    const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}` : undefined;
+    const emailHref = emailAddress ? `mailto:${emailAddress}` : undefined;
+
+    const socialLinks = useMemo(
+        () =>
+            (sharedSettings?.social ?? [])
+                .filter((entry): entry is SocialLink & { url: string } => Boolean(entry?.url))
+                .map((entry) => ({
+                    label: entry.label ?? entry.url ?? 'Sosial',
+                    url: entry.url as string,
+                })),
+        [sharedSettings?.social],
+    );
+
+    const footerHours = useMemo(() => {
+        const entries = (sharedSettings?.footer_hours ?? [])
+            .map((slot, index) => {
+                if (!slot) {
+                    return null;
+                }
+
+                const label = slot.day?.trim() || slot.label?.trim() || `Hari ${index + 1}`;
+                const time = slot.time?.trim() || slot.value?.trim() || [slot.open, slot.close].filter(Boolean).join(' - ');
+
+                if (!label && !time) {
+                    return null;
+                }
+
+                return `${label}${time ? ` · ${time}` : ''}`;
+            })
+            .filter((value): value is string => Boolean(value));
+
+        if (entries.length > 0) {
+            return entries;
+        }
+
+        return ['Senin - Jumat · 08.00 - 16.00 WIB'];
+    }, [sharedSettings?.footer_hours]);
 
     const contactChannels = [
         {
@@ -70,7 +140,7 @@ export default function Contact({ title }: { title: string }) {
             detail:
                 'Diskusikan peluang praktik kerja, program magang, ataupun dukungan CSR bagi peserta didik bersama tim hubungan industri.',
             action: {
-                href: 'mailto:' + emailAddress,
+                href: emailHref ?? '#',
                 text: 'Email Tim Industri',
                 isExternal: true,
             },
@@ -81,8 +151,8 @@ export default function Contact({ title }: { title: string }) {
             detail:
                 'Tim layanan siswa siap membantu kebutuhan administrasi, konseling, dan penyesuaian pembelajaran untuk siswa berkebutuhan khusus.',
             action: {
-                href: 'tel:' + phoneNumber.replace(/[^\d+]/g, ''),
-                text: 'Hubungi Sekolah',
+                href: phoneHref ?? whatsappHref ?? '#',
+                text: phoneHref ? 'Hubungi Sekolah' : 'Chat WhatsApp',
                 isExternal: true,
             },
         },
@@ -102,7 +172,7 @@ export default function Contact({ title }: { title: string }) {
         () => [
             {
                 title: 'Jam Layanan',
-                description: 'Senin - Jumat pukul 08.00 - 16.00 WIB dengan penjadwalan khusus bagi mitra komunitas.',
+                description: footerHours.join(' · '),
             },
             {
                 title: 'Lokasi',
@@ -110,10 +180,12 @@ export default function Contact({ title }: { title: string }) {
             },
             {
                 title: 'Kontak Utama',
-                description: `Telepon ${phoneNumber} · ${emailAddress}`,
+                description: [phoneNumber || null, emailAddress || null, whatsappNumber ? `WhatsApp ${whatsappNumber}` : null]
+                    .filter(Boolean)
+                    .join(' · '),
             },
         ],
-        [officeAddress, phoneNumber, emailAddress],
+        [footerHours, officeAddress, phoneNumber, emailAddress, whatsappNumber],
     );
 
     const responseHighlights = [
@@ -161,18 +233,30 @@ export default function Contact({ title }: { title: string }) {
                                 Kami menyediakan jalur komunikasi yang responsif bagi orang tua, mitra, media, dan komunitas untuk memastikan kebutuhan peserta didik terpenuhi secara menyeluruh.
                             </p>
                             <div className="flex flex-wrap gap-3">
-                                <a
-                                    href={`tel:${phoneNumber.replace(/[^\d+]/g, '')}`}
-                                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-200"
-                                >
-                                    Hubungi via Telepon ↗
-                                </a>
-                                <a
-                                    href={`mailto:${emailAddress}`}
-                                    className="inline-flex items-center gap-2 rounded-full border border-white/70 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                                >
-                                    Kirim Email ke Sekolah
-                                </a>
+                                {phoneHref ? (
+                                    <a
+                                        href={phoneHref}
+                                        className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-200"
+                                    >
+                                        Hubungi via Telepon ↗
+                                    </a>
+                                ) : null}
+                                {!phoneHref && whatsappHref ? (
+                                    <a
+                                        href={whatsappHref}
+                                        className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-200"
+                                    >
+                                        Chat via WhatsApp ↗
+                                    </a>
+                                ) : null}
+                                {emailHref ? (
+                                    <a
+                                        href={emailHref}
+                                        className="inline-flex items-center gap-2 rounded-full border border-white/70 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                                    >
+                                        Kirim Email ke Sekolah
+                                    </a>
+                                ) : null}
                             </div>
                         </header>
                         <aside className="space-y-4 rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur">
@@ -341,15 +425,42 @@ export default function Contact({ title }: { title: string }) {
                                     {officeAddress}
                                 </p>
                                 <div className="mt-4 space-y-2 text-sm text-slate-700">
-                                    <p>
-                                        <span className="font-semibold">Telepon:</span> {phoneNumber}
-                                    </p>
-                                    <p>
-                                        <span className="font-semibold">Email:</span> {emailAddress}
-                                    </p>
-                                    <p>
-                                        <span className="font-semibold">WhatsApp:</span> 0812-3456-7890
-                                    </p>
+                                    {phoneNumber ? (
+                                        <p>
+                                            <span className="font-semibold">Telepon:</span>{' '}
+                                            {phoneHref ? (
+                                                <a href={phoneHref} className="text-brand-700 hover:underline">
+                                                    {phoneNumber}
+                                                </a>
+                                            ) : (
+                                                phoneNumber
+                                            )}
+                                        </p>
+                                    ) : null}
+                                    {emailAddress ? (
+                                        <p>
+                                            <span className="font-semibold">Email:</span>{' '}
+                                            {emailHref ? (
+                                                <a href={emailHref} className="text-brand-700 hover:underline">
+                                                    {emailAddress}
+                                                </a>
+                                            ) : (
+                                                emailAddress
+                                            )}
+                                        </p>
+                                    ) : null}
+                                    {whatsappNumber ? (
+                                        <p>
+                                            <span className="font-semibold">WhatsApp:</span>{' '}
+                                            {whatsappHref ? (
+                                                <a href={whatsappHref} className="text-brand-700 hover:underline">
+                                                    {whatsappNumber}
+                                                </a>
+                                            ) : (
+                                                whatsappNumber
+                                            )}
+                                        </p>
+                                    ) : null}
                                 </div>
                                 <div className="mt-4 space-y-2 text-xs text-slate-500">
                                     <p>Kunjungan tatap muka disarankan melalui janji temu sebelumnya.</p>
@@ -362,11 +473,30 @@ export default function Contact({ title }: { title: string }) {
                                     <p className="flex h-full items-center justify-center text-xs text-slate-500">Peta sekolah akan ditampilkan di sini.</p>
                                 </div>
                                 <a
-                                    href="https://maps.google.com/?q=SMK+Negeri+10+Kuningan"
+                                    href={`https://maps.google.com/?q=${encodeURIComponent(officeAddress)}`}
                                     className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-600"
                                 >
                                     Buka di Google Maps ↗
                                 </a>
+                                {socialLinks.length > 0 ? (
+                                    <div className="mt-6 space-y-2 text-sm text-slate-700">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-600">Tautan Sosial</p>
+                                        <ul className="space-y-2">
+                                            {socialLinks.map((link) => (
+                                                <li key={link.url}>
+                                                    <a
+                                                        href={link.url}
+                                                        className="inline-flex items-center gap-2 text-brand-700 hover:underline"
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                    >
+                                                        {link.label}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : null}
                             </div>
                         </aside>
                     </div>

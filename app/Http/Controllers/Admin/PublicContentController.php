@@ -2,204 +2,266 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Facades\SiteContent;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\HandlesMediaUpload;
+use App\Models\Album;
 use App\Models\MediaAsset;
-use App\Models\SiteContentEntry;
-use App\Support\SiteContent;
+use App\Models\Post;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PublicContentController extends Controller
 {
-    public function edit(): Response
-    {
-        $homeDefaults = [
-            'hero_eyebrow' => 'Sekolah Inklusif - Ramah Disabilitas',
-            'hero_title' => 'Setiap Anak Berhak Tumbuh & Berprestasi',
-            'hero_description' => 'Lingkungan belajar yang aman, aksesibel, dan menyenangkan dengan dukungan guru pendamping, terapi, serta teknologi asistif.',
-            'hero_primary_label' => 'Daftar PPDB',
-            'hero_primary_link' => '/ppdb',
-            'hero_secondary_label' => 'Hubungi Kami',
-            'hero_secondary_link' => '/hubungi-kami',
-            'highlights' => [],
-            'stats' => [],
-            'news_title' => 'Berita Terbaru',
-            'news_description' => null,
-            'agenda_title' => 'Agenda Terdekat',
-            'agenda_description' => null,
-            'gallery_title' => 'Galeri / Prestasi',
-            'gallery_description' => null,
-            'testimonials_title' => 'Suara Mereka',
-            'testimonials_items' => [],
-        ];
+    use HandlesMediaUpload;
 
-        $heroMedia = SiteContent::media('hero', 'home');
+    private const SUPPORTED_SECTIONS = ['home', 'profil', 'visi'];
+
+    public function edit(string $section): Response
+    {
+        $section = $this->normaliseSection($section);
+
+        $settings = $this->resolveSettings($section);
+        $heroAsset = SiteContent::getMedia('hero', $section);
 
         return Inertia::render('admin/content/Edit', [
-            'home' => SiteContent::section('home', $homeDefaults),
-            'media' => [
-                'home' => [
-                    'hero' => $heroMedia ? [
-                        'id' => $heroMedia->id,
-                        'collection' => $heroMedia->collection,
-                        'key' => $heroMedia->key,
-                        'url' => $this->mediaUrl($heroMedia),
-                        'alt' => $heroMedia->alt,
-                        'type' => $heroMedia->type,
-                    ] : null,
-                ],
-            ],
+            'section' => $section,
+            'settings' => $settings,
+            'hero_url' => $heroAsset instanceof MediaAsset ? SiteContent::url($heroAsset) : null,
+            'updateUrl' => route('admin.content.update', ['section' => $section]),
+            'availableNews' => Post::query()
+                ->select(['id', 'title'])
+                ->orderByDesc('published_at')
+                ->orderByDesc('created_at')
+                ->limit(24)
+                ->get(),
+            'galleryAlbums' => Album::query()
+                ->select(['id', 'name'])
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, string $section): RedirectResponse
     {
+        $section = $this->normaliseSection($section);
+
         $validated = $request->validate([
-            'section' => ['required', 'string', 'in:home'],
-            'data' => ['required', 'array'],
+            'hero' => ['nullable', 'array'],
+            'hero.title' => ['nullable', 'string', 'max:255'],
+            'hero.subtitle' => ['nullable', 'string'],
+            'hero.cta1_label' => ['nullable', 'string', 'max:120'],
+            'hero.cta1_url' => ['nullable', 'string', 'max:255'],
+            'hero.cta2_label' => ['nullable', 'string', 'max:120'],
+            'hero.cta2_url' => ['nullable', 'string', 'max:255'],
+            'hero.overlay' => ['nullable', 'integer', 'between:0,100'],
+            'hero_alt' => ['nullable', 'string', 'max:255'],
+            'hero_media' => [
+                'nullable',
+                'file',
+                'mimetypes:image/jpeg,image/png,image/webp',
+                'max:3072',
+                Rule::dimensions()->minWidth(1600)->minHeight(900),
+            ],
+            'showHighlights' => ['sometimes', 'boolean'],
+            'highlights' => ['nullable', 'array', 'max:4'],
+            'highlights.*.icon' => ['nullable', 'string', 'max:120'],
+            'highlights.*.title' => ['nullable', 'string', 'max:120'],
+            'highlights.*.description' => ['nullable', 'string'],
+            'highlights.*.link' => ['nullable', 'string', 'max:255'],
+            'newsMode' => ['nullable', Rule::in(['auto', 'manual'])],
+            'pins' => ['nullable', 'array'],
+            'pins.*' => ['integer', 'exists:posts,id'],
+            'agendaLimit' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'galleryMode' => ['nullable', Rule::in(['album', 'manual'])],
+            'galleryAlbumId' => ['nullable', 'integer', 'exists:albums,id'],
+            'galleryManual' => ['nullable', 'array'],
+            'galleryManual.*' => ['integer'],
+            'stats' => ['nullable', 'array'],
+            'stats.students' => ['nullable', 'integer', 'min:0'],
+            'stats.teachers' => ['nullable', 'integer', 'min:0'],
+            'stats.accreditation' => ['nullable', 'string', 'max:120'],
+            'stats.photos' => ['nullable', 'integer', 'min:0'],
+            'showStats' => ['sometimes', 'boolean'],
+            'testimonials' => ['nullable', 'array'],
+            'testimonials.*.name' => ['nullable', 'string', 'max:120'],
+            'testimonials.*.role' => ['nullable', 'string', 'max:120'],
+            'testimonials.*.quote' => ['nullable', 'string'],
+            'showTestimonials' => ['sometimes', 'boolean'],
         ]);
 
-        $data = $this->normalizeHome($validated['data']);
+        $heroAlt = trim((string) ($validated['hero_alt'] ?? ''));
+        $existingHero = SiteContent::getMedia('hero', $section);
+        $heroAsset = $existingHero instanceof MediaAsset ? $existingHero : null;
 
-        SiteContentEntry::query()->where('section', 'home')->delete();
-
-        foreach ($data as $key => $value) {
-            SiteContentEntry::updateOrCreate(
-                ['section' => 'home', 'key' => $key],
-                [
-                    'type' => is_array($value) ? 'json' : 'text',
-                    'value' => is_array($value)
-                        ? json_encode($value, JSON_UNESCAPED_UNICODE)
-                        : (string) $value,
-                ],
+        if ($request->hasFile('hero_media')) {
+            $heroAsset = $this->replaceSingleton(
+                $request->file('hero_media'),
+                'hero',
+                $section,
+                $heroAlt !== '' ? $heroAlt : null
             );
+        } elseif ($heroAsset instanceof MediaAsset) {
+            $heroAsset->update(['alt' => $heroAlt !== '' ? $heroAlt : null]);
         }
 
-        SiteContent::clearCache();
+        $heroSettings = array_merge([
+            'title' => null,
+            'subtitle' => null,
+            'cta1_label' => null,
+            'cta1_url' => null,
+            'cta2_label' => null,
+            'cta2_url' => null,
+            'overlay' => 60,
+        ], $validated['hero'] ?? []);
 
-        return back()->with('success', 'Konten beranda berhasil disimpan.');
+        $heroSettings['overlay'] = (int) ($heroSettings['overlay'] ?? 60);
+        $heroSettings['alt'] = $heroAlt !== '' ? $heroAlt : null;
+        $heroSettings['asset_id'] = $heroAsset?->id;
+
+        $highlights = collect($validated['highlights'] ?? [])
+            ->map(fn ($item) => [
+                'icon' => Arr::get($item, 'icon'),
+                'title' => Arr::get($item, 'title'),
+                'description' => Arr::get($item, 'description'),
+                'link' => Arr::get($item, 'link'),
+            ])
+            ->values()
+            ->all();
+
+        $pins = collect($validated['pins'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $galleryManual = collect($validated['galleryManual'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $stats = array_filter([
+            'students' => Arr::get($validated, 'stats.students'),
+            'teachers' => Arr::get($validated, 'stats.teachers'),
+            'accreditation' => Arr::get($validated, 'stats.accreditation'),
+            'photos' => Arr::get($validated, 'stats.photos'),
+        ], fn ($value) => $value !== null && $value !== '');
+
+        $testimonials = collect($validated['testimonials'] ?? [])
+            ->map(fn ($item) => [
+                'name' => Arr::get($item, 'name'),
+                'role' => Arr::get($item, 'role'),
+                'quote' => Arr::get($item, 'quote'),
+            ])
+            ->values()
+            ->all();
+
+        $values = array_filter([
+            'hero' => $heroSettings,
+            'showHighlights' => $request->boolean('showHighlights'),
+            'highlights' => $highlights,
+            'newsMode' => $validated['newsMode'] ?? 'auto',
+            'pins' => $pins,
+            'agendaLimit' => $validated['agendaLimit'] ?? 3,
+            'galleryMode' => $validated['galleryMode'] ?? 'album',
+            'galleryAlbumId' => $validated['galleryAlbumId'] ?? null,
+            'galleryManual' => $galleryManual,
+            'stats' => $stats,
+            'showStats' => $request->boolean('showStats'),
+            'testimonials' => $testimonials,
+            'showTestimonials' => $request->boolean('showTestimonials'),
+        ], fn ($value) => $value !== null);
+
+        $this->persistSection($section, $values);
+
+        return back()->with('success', 'Konten berhasil disimpan.');
     }
 
-    public function storeMedia(Request $request): RedirectResponse
+    private function resolveSettings(string $section): array
     {
-        $validated = $request->validate([
-            'collection' => ['required', 'string', 'in:home'],
-            'key' => ['required', 'string', 'in:hero'],
-            'file' => ['required', 'image', 'max:5120'],
-            'alt' => ['nullable', 'string', 'max:255'],
-        ]);
+        $sectionKey = $this->sectionKey($section);
 
-        $existing = MediaAsset::query()
-            ->where('collection', $validated['collection'])
-            ->where('key', $validated['key'])
-            ->first();
-
-        if ($existing) {
-            $this->deleteMediaFile($existing);
-        }
-
-        $path = $validated['file']->store('public-content/'.$validated['collection'], 'public');
-
-        MediaAsset::updateOrCreate(
-            ['collection' => $validated['collection'], 'key' => $validated['key']],
-            [
-                'disk' => 'public',
-                'path' => $path,
-                'type' => Str::startsWith($validated['file']->getMimeType(), 'video/') ? 'video' : 'image',
-                'alt' => $validated['alt'] ?? null,
-            ],
-        );
-
-        SiteContent::clearCache();
-
-        return back()->with('success', 'Media hero diperbarui.');
-    }
-
-    public function destroyMedia(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'collection' => ['required', 'string', 'in:home'],
-            'key' => ['required', 'string', 'in:hero'],
-        ]);
-
-        $media = MediaAsset::query()
-            ->where('collection', $validated['collection'])
-            ->where('key', $validated['key'])
-            ->first();
-
-        if ($media) {
-            $this->deleteMediaFile($media);
-            $media->delete();
-        }
-
-        SiteContent::clearCache();
-
-        return back()->with('success', 'Media hero dihapus.');
-    }
-
-    private function normalizeHome(array $data): array
-    {
-        return [
-            'hero_eyebrow' => trim((string) ($data['hero_eyebrow'] ?? '')),
-            'hero_title' => trim((string) ($data['hero_title'] ?? '')),
-            'hero_description' => trim((string) ($data['hero_description'] ?? '')),
-            'hero_primary_label' => trim((string) ($data['hero_primary_label'] ?? '')),
-            'hero_primary_link' => trim((string) ($data['hero_primary_link'] ?? '')),
-            'hero_secondary_label' => trim((string) ($data['hero_secondary_label'] ?? '')),
-            'hero_secondary_link' => trim((string) ($data['hero_secondary_link'] ?? '')),
-            'highlights' => collect($data['highlights'] ?? [])
-                ->map(fn (array $item) => [
-                    'title' => trim((string) ($item['title'] ?? '')),
-                    'description' => trim((string) ($item['description'] ?? '')),
-                    'href' => trim((string) ($item['href'] ?? '')),
-                ])
-                ->filter(fn ($item) => $item['title'] !== '' || $item['description'] !== '')
-                ->values()
-                ->all(),
-            'stats' => collect($data['stats'] ?? [])
-                ->map(fn (array $item) => [
-                    'label' => trim((string) ($item['label'] ?? '')),
-                    'value' => trim((string) ($item['value'] ?? '')),
-                ])
-                ->filter(fn ($item) => $item['label'] !== '' && $item['value'] !== '')
-                ->values()
-                ->all(),
-            'news_title' => trim((string) ($data['news_title'] ?? '')),
-            'news_description' => trim((string) ($data['news_description'] ?? '')),
-            'agenda_title' => trim((string) ($data['agenda_title'] ?? '')),
-            'agenda_description' => trim((string) ($data['agenda_description'] ?? '')),
-            'gallery_title' => trim((string) ($data['gallery_title'] ?? '')),
-            'gallery_description' => trim((string) ($data['gallery_description'] ?? '')),
-            'testimonials_title' => trim((string) ($data['testimonials_title'] ?? '')),
-            'testimonials_items' => collect($data['testimonials_items'] ?? [])
-                ->map(fn (array $item) => [
-                    'quote' => trim((string) ($item['quote'] ?? '')),
-                    'name' => trim((string) ($item['name'] ?? '')),
-                    'role' => trim((string) ($item['role'] ?? '')),
-                ])
-                ->filter(fn ($item) => $item['quote'] !== '' && $item['name'] !== '')
-                ->values()
-                ->all(),
+        $keys = [
+            'hero',
+            'showHighlights',
+            'highlights',
+            'newsMode',
+            'pins',
+            'agendaLimit',
+            'galleryMode',
+            'galleryAlbumId',
+            'galleryManual',
+            'stats',
+            'showStats',
+            'testimonials',
+            'showTestimonials',
         ];
-    }
 
-    private function mediaUrl(MediaAsset $media): string
-    {
-        if (Str::startsWith($media->path, ['http://', 'https://'])) {
-            return $media->path;
+        $settings = collect($keys)
+            ->mapWithKeys(fn (string $key) => [$key => SiteContent::getSetting($sectionKey, $key)])
+            ->toArray();
+
+        if (! is_array($settings['hero'] ?? null)) {
+            $settings['hero'] = [];
         }
 
-        return Storage::disk($media->disk)->url($media->path);
+        if (
+            (! isset($settings['hero']['alt']) || $settings['hero']['alt'] === null)
+            && ($heroAsset = SiteContent::getMedia('hero', $section)) instanceof MediaAsset
+        ) {
+            $settings['hero']['alt'] = $heroAsset->alt;
+        }
+
+        return $settings;
     }
 
-    private function deleteMediaFile(MediaAsset $media): void
+    private function persistSection(string $section, array $values): void
     {
-        if ($media->path && ! Str::startsWith($media->path, ['http://', 'https://'])) {
-            Storage::disk($media->disk)->delete($media->path);
+        if ($values === []) {
+            return;
         }
+
+        $sectionKey = $this->sectionKey($section);
+        $now = now();
+
+        $records = collect($values)
+            ->map(function ($value, string $key) use ($sectionKey, $now) {
+                return [
+                    'section' => $sectionKey,
+                    'key' => $key,
+                    'value_json' => json_encode($value),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            })
+            ->values()
+            ->all();
+
+        DB::table('site_settings')->upsert($records, ['section', 'key'], ['value_json', 'updated_at']);
+
+        foreach (array_keys($values) as $key) {
+            SiteContent::forgetSetting($sectionKey, $key);
+        }
+    }
+
+    private function normaliseSection(string $section): string
+    {
+        $section = strtolower($section);
+
+        abort_unless(in_array($section, self::SUPPORTED_SECTIONS, true), 404);
+
+        return $section;
+    }
+
+    private function sectionKey(string $section): string
+    {
+        return 'content_' . $section;
     }
 }
+

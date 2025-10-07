@@ -16,7 +16,6 @@ import {
     User,
     X,
 } from 'lucide-react';
-import ThemeToggle from '@/components/ThemeToggle';
 
 interface PublicLayoutProps {
     children: ReactNode;
@@ -62,14 +61,14 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-    { id: 'home', label: '', href: '/', icon: Home },
-    { id: 'profil', label: '', href: '/profil', icon: User },
-    { id: 'visi', label: '', href: '/visi-misi', icon: Target },
-    { id: 'program', label: '', href: '/vokasional', icon: Layers },
-    { id: 'berita', label: '', href: '/berita', icon: Newspaper },
-    { id: 'agenda', label: '', href: '/agenda', icon: CalendarDays },
-    { id: 'galeri', label: '', href: '/galeri', icon: ImageIcon },
-    
+    { id: 'home', label: 'Beranda', href: '/', icon: Home },
+    { id: 'profil', label: 'Profil', href: '/profil', icon: User },
+    { id: 'visi', label: 'Visi & Misi', href: '/visi-misi', icon: Target },
+    { id: 'program', label: 'Direktori Program', href: '/vokasional', icon: Layers },
+    { id: 'berita', label: 'Berita', href: '/berita', icon: Newspaper },
+    { id: 'agenda', label: 'Agenda', href: '/agenda', icon: CalendarDays },
+    { id: 'galeri', label: 'Galeri', href: '/galeri', icon: ImageIcon },
+    { id: 'kontak', label: 'Hubungi Kami', href: '/hubungi-kami', icon: MessageCircle },
 ];
 
 export default function PublicLayout({ children, siteName, tagline }: PublicLayoutProps) {
@@ -140,16 +139,13 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                                 );
                             })}
                         </nav>
-                        <div className="flex items-center gap-3">
-                            <ThemeToggle />
-                            <Link
-                                href={whatsappHref}
-                                className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-                            >
-                                <MessageCircle className="h-4 w-4" aria-hidden />
-                                {whatsappLabel}
-                            </Link>
-                        </div>
+                        <Link
+                            href={whatsappHref}
+                            className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                        >
+                            <MessageCircle className="h-4 w-4" aria-hidden />
+                            {whatsappLabel}
+                        </Link>
                     </div>
                     <button
                         type="button"

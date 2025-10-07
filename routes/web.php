@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\MediaItemController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
+use App\Http\Controllers\Admin\PublicContentController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\VocationalProgramController;
 use App\Http\Controllers\Public\AlbumController as PubAlbumController;
@@ -49,6 +50,8 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::resource('posts', App\Http\Controllers\Admin\PostController::class);
         Route::resource('events', App\Http\Controllers\Admin\EventController::class);
         Route::resource('albums', App\Http\Controllers\Admin\AlbumController::class);
+        Route::get('content/{section}', [PublicContentController::class, 'edit'])->name('content.edit');
+        Route::post('content/{section}', [PublicContentController::class, 'update'])->name('content.update');
         Route::post('albums/{album}/media', [App\Http\Controllers\Admin\AlbumMediaController::class, 'store'])->name('albums.media.store');
         Route::delete('albums/{album}/media/{media}', [App\Http\Controllers\Admin\AlbumMediaController::class, 'destroy'])->name('albums.media.destroy');
         Route::resource('vocational-programs', App\Http\Controllers\Admin\VocationalProgramController::class);

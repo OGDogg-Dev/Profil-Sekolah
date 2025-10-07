@@ -130,7 +130,7 @@ export default function ContentEdit() {
     const [heroPreview, setHeroPreview] = useState<string | null>(props.hero_url ?? null);
     const [heroWarning, setHeroWarning] = useState<string | null>(null);
 
-    const { data, setData, post, processing, errors, reset } = useForm<FormValues>({
+    const { data, setData, post: submitRequest, processing, errors, reset, transform } = useForm<FormValues>({
         section,
         heroFile: null,
         heroAlt: settings.hero?.alt ?? '',
@@ -247,38 +247,42 @@ export default function ContentEdit() {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const payload: Record<string, unknown> = {
-            section: data.section,
-            hero: data.hero,
-            hero_alt: data.heroAlt,
-            showHighlights: data.showHighlights,
-            highlights: data.highlights,
-            newsMode: data.newsMode,
-            pins: data.pins,
-            agendaLimit: data.agendaLimit,
-            galleryMode: data.galleryMode,
-            galleryAlbumId: data.galleryAlbumId || null,
-            galleryManual: data.galleryManual
-                .split(',')
-                .map((entry) => entry.trim())
-                .filter(Boolean)
-                .map((entry) => Number(entry)),
-            stats: {
-                students: data.stats.students ? Number(data.stats.students) : null,
-                teachers: data.stats.teachers ? Number(data.stats.teachers) : null,
-                accreditation: data.stats.accreditation,
-                photos: data.stats.photos ? Number(data.stats.photos) : null,
-            },
-            showStats: data.showStats,
-            testimonials: data.testimonials,
-            showTestimonials: data.showTestimonials,
-        };
+        transform((current) => {
+            const payload: Record<string, unknown> = {
+                section: current.section,
+                hero: current.hero,
+                hero_alt: current.heroAlt,
+                showHighlights: current.showHighlights,
+                highlights: current.highlights,
+                newsMode: current.newsMode,
+                pins: current.pins,
+                agendaLimit: current.agendaLimit,
+                galleryMode: current.galleryMode,
+                galleryAlbumId: current.galleryAlbumId || null,
+                galleryManual: current.galleryManual
+                    .split(',')
+                    .map((entry) => entry.trim())
+                    .filter(Boolean)
+                    .map((entry) => Number(entry)),
+                stats: {
+                    students: current.stats.students ? Number(current.stats.students) : null,
+                    teachers: current.stats.teachers ? Number(current.stats.teachers) : null,
+                    accreditation: current.stats.accreditation,
+                    photos: current.stats.photos ? Number(current.stats.photos) : null,
+                },
+                showStats: current.showStats,
+                testimonials: current.testimonials,
+                showTestimonials: current.showTestimonials,
+            };
 
-        if (data.heroFile) {
-            payload.hero_media = data.heroFile;
-        }
+            if (current.heroFile) {
+                payload.hero_media = current.heroFile;
+            }
 
-        post(actionUrl, payload, {
+            return payload;
+        });
+
+        submitRequest(actionUrl, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -287,6 +291,9 @@ export default function ContentEdit() {
                     return;
                 }
                 reset('heroFile');
+            },
+            onFinish: () => {
+                transform((formData) => formData);
             },
         });
     };

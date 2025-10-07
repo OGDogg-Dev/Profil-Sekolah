@@ -76,7 +76,7 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
     const [logoPreview, setLogoPreview] = useState<string | null>(settings?.logo_url ?? null);
     const [ogPreview, setOgPreview] = useState<string | null>(settings?.og_image_url ?? null);
 
-    const { data, setData, post, processing, errors, reset } = useForm<FormValues>({
+    const { data, setData, post: submitRequest, processing, errors, reset, transform } = useForm<FormValues>({
         site_name: settings?.site_name ?? '',
         tagline: settings?.tagline ?? '',
         address: settings?.address ?? '',
@@ -170,36 +170,42 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const social = data.social.filter((item) => item.label.trim() && item.url.trim());
-        const footerHours = data.footer_hours.filter((item) => item.day.trim() && item.time.trim());
+        transform((current) => {
+            const social = current.social.filter((item) => item.label.trim() && item.url.trim());
+            const footerHours = current.footer_hours.filter((item) => item.day.trim() && item.time.trim());
 
-        const payload: Record<string, unknown> = {
-            site_name: data.site_name,
-            tagline: data.tagline,
-            address: data.address,
-            phone: data.phone,
-            whatsapp: data.whatsapp,
-            email: data.email,
-            social,
-            footer_hours: footerHours,
-        };
+            const payload: Record<string, unknown> = {
+                site_name: current.site_name,
+                tagline: current.tagline,
+                address: current.address,
+                phone: current.phone,
+                whatsapp: current.whatsapp,
+                email: current.email,
+                social,
+                footer_hours: footerHours,
+                _method: 'put',
+            };
 
-        if (data.logo) {
-            payload.logo = data.logo;
-        }
+            if (current.logo) {
+                payload.logo = current.logo;
+            }
 
-        if (data.og_image) {
-            payload.og_image = data.og_image;
-        }
+            if (current.og_image) {
+                payload.og_image = current.og_image;
+            }
 
-        payload._method = 'put';
+            return payload;
+        });
 
-        post('/admin/settings', payload, {
+        submitRequest('/admin/settings', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
                 showToast('Pengaturan tersimpan.');
                 reset('logo', 'og_image');
+            },
+            onFinish: () => {
+                transform((formData) => formData);
             },
         });
     };

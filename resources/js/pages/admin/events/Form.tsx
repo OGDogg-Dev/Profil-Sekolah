@@ -72,7 +72,7 @@ export default function EventForm({ event }: EventFormProps) {
     const [coverPreview, setCoverPreview] = useState<string | null>(event?.cover_url ?? null);
     const [toastMessage, setToastMessage] = useState<string | null>(props.flash?.success ?? null);
 
-    const { data, setData, post, processing, errors, reset } = useForm<FormValues>({
+    const { data, setData, post: submitRequest, processing, errors, reset, transform } = useForm<FormValues>({
         title: event?.title ?? '',
         slug: event?.slug ?? '',
         description: event?.description ?? '',
@@ -124,21 +124,25 @@ export default function EventForm({ event }: EventFormProps) {
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const payload: Record<string, unknown> = {
-            ...data,
-            start_at: data.start_at ? new Date(data.start_at).toISOString() : null,
-            end_at: data.end_at ? new Date(data.end_at).toISOString() : null,
-        };
+        transform((current) => {
+            const payload: Record<string, unknown> = {
+                ...current,
+                start_at: current.start_at ? new Date(current.start_at).toISOString() : null,
+                end_at: current.end_at ? new Date(current.end_at).toISOString() : null,
+            };
 
-        if (!data.cover) {
-            delete payload.cover;
-        }
+            if (!current.cover) {
+                delete payload.cover;
+            }
 
-        if (isEdit && event?.id) {
-            payload._method = 'put';
-        }
+            if (isEdit && event?.id) {
+                payload._method = 'put';
+            }
 
-        post(isEdit && event?.id ? `/admin/events/${event.id}` : '/admin/events', payload, {
+            return payload;
+        });
+
+        submitRequest(isEdit && event?.id ? `/admin/events/${event.id}` : '/admin/events', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -148,6 +152,9 @@ export default function EventForm({ event }: EventFormProps) {
                     reset();
                     setCoverPreview(null);
                 }
+            },
+            onFinish: () => {
+                transform((formData) => formData);
             },
         });
     };

@@ -95,7 +95,7 @@ export default function VocForm({ item }: VocFormProps) {
     const [coverPreview, setCoverPreview] = useState<string | null>(item?.cover_url ?? null);
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
-    const { data, setData, post, processing, errors, reset } = useForm<FormValues>({
+    const { data, setData, post: submitRequest, processing, errors, reset, transform } = useForm<FormValues>({
         slug: item?.slug ?? '',
         title: item?.title ?? '',
         summary: item?.summary ?? '',
@@ -204,34 +204,38 @@ export default function VocForm({ item }: VocFormProps) {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const trimmedKurikulum = data.kurikulum.map((entry) => entry.trim()).filter(Boolean);
-        const trimmedFasilitas = data.fasilitas.map((entry) => entry.trim()).filter(Boolean);
-        const galleryAlt = data.gallery_alt
-            .slice(0, data.gallery.length)
-            .map((entry) => entry.trim());
+        transform((current) => {
+            const trimmedKurikulum = current.kurikulum.map((entry) => entry.trim()).filter(Boolean);
+            const trimmedFasilitas = current.fasilitas.map((entry) => entry.trim()).filter(Boolean);
+            const galleryAlt = current.gallery_alt
+                .slice(0, current.gallery.length)
+                .map((entry) => entry.trim());
 
-        const payload: Record<string, unknown> = {
-            ...data,
-            kurikulum: trimmedKurikulum,
-            fasilitas: trimmedFasilitas,
-            gallery_alt: galleryAlt,
-            published_at: data.published_at ? new Date(data.published_at).toISOString() : null,
-        };
+            const payload: Record<string, unknown> = {
+                ...current,
+                kurikulum: trimmedKurikulum,
+                fasilitas: trimmedFasilitas,
+                gallery_alt: galleryAlt,
+                published_at: current.published_at ? new Date(current.published_at).toISOString() : null,
+            };
 
-        if (!data.cover) {
-            delete payload.cover;
-        }
+            if (!current.cover) {
+                delete payload.cover;
+            }
 
-        if (!data.gallery.length) {
-            delete payload.gallery;
-            delete payload.gallery_alt;
-        }
+            if (!current.gallery.length) {
+                delete payload.gallery;
+                delete payload.gallery_alt;
+            }
 
-        if (isEdit && item?.id) {
-            payload._method = 'put';
-        }
+            if (isEdit && item?.id) {
+                payload._method = 'put';
+            }
 
-        post(isEdit && item?.id ? `/admin/vocational-programs/${item.id}` : '/admin/vocational-programs', payload, {
+            return payload;
+        });
+
+        submitRequest(isEdit && item?.id ? `/admin/vocational-programs/${item.id}` : '/admin/vocational-programs', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -250,6 +254,9 @@ export default function VocForm({ item }: VocFormProps) {
                         return [];
                     });
                 }
+            },
+            onFinish: () => {
+                transform((formData) => formData);
             },
         });
     };

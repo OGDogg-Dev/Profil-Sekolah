@@ -73,7 +73,7 @@ export default function PostForm({ post }: PostFormProps) {
     const [toastMessage, setToastMessage] = useState<string | null>(props.flash?.success ?? null);
     const [tagInput, setTagInput] = useState('');
 
-    const { data, setData, post: postForm, processing, errors, reset } = useForm<FormValues>({
+    const { data, setData, post: postForm, processing, errors, reset, transform } = useForm<FormValues>({
         title: post?.title ?? '',
         slug: post?.slug ?? '',
         excerpt: post?.excerpt ?? '',
@@ -149,30 +149,34 @@ export default function PostForm({ post }: PostFormProps) {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const payload: Record<string, unknown> = {
-            ...data,
-            sticky: data.sticky ? 1 : 0,
-            tags: data.tags,
-            published_at: data.published_at ? new Date(data.published_at).toISOString() : null,
-        };
+        transform((current) => {
+            const payload: Record<string, unknown> = {
+                ...current,
+                sticky: current.sticky ? 1 : 0,
+                tags: current.tags,
+                published_at: current.published_at ? new Date(current.published_at).toISOString() : null,
+            };
 
-        if (!data.cover) {
-            delete payload.cover;
-        }
+            if (!current.cover) {
+                delete payload.cover;
+            }
 
-        if (!data.cover_alt) {
-            payload.cover_alt = '';
-        }
+            if (!current.cover_alt) {
+                payload.cover_alt = '';
+            }
 
-        if (!data.seo_keywords) {
-            payload.seo_keywords = '';
-        }
+            if (!current.seo_keywords) {
+                payload.seo_keywords = '';
+            }
 
-        if (isEdit && post?.id) {
-            payload._method = 'put';
-        }
+            if (isEdit && post?.id) {
+                payload._method = 'put';
+            }
 
-        postForm(isEdit && post?.id ? `/admin/posts/${post.id}` : '/admin/posts', payload, {
+            return payload;
+        });
+
+        postForm(isEdit && post?.id ? `/admin/posts/${post.id}` : '/admin/posts', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -182,6 +186,9 @@ export default function PostForm({ post }: PostFormProps) {
                     reset();
                     setCoverPreview(null);
                 }
+            },
+            onFinish: () => {
+                transform((formData) => formData);
             },
         });
     };

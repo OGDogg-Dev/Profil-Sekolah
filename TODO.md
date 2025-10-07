@@ -35,3 +35,11 @@
 ---
 
 # Progress will be updated here as steps are completed.
+
+- Made migrations idempotent for local sqlite databases:
+  - `2025_10_06_133522_add_section_key_type_value_to_site_settings_table.php` now checks for `site_settings` table and `section` column before altering.
+  - `2025_10_07_000010_create_media_assets_table.php` now checks for `media_assets` table before creating.
+  This prevents "duplicate column name" and "table already exists" errors when running migrations against an existing SQLite file.
+- Updated `SiteSetting` model to use `value_json` (normalized schema) instead of `type`/`value`.
+- Updated `DemoContentSeeder` to write `value_json` and to use an allowed `media_assets.collection` value so sqlite CHECK constraints are satisfied.
+- These changes resolve "no column named type" and media_assets CHECK constraint errors when seeding against an existing sqlite DB.

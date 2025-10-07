@@ -8,6 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // If the table already exists (for example in an existing sqlite
+        // database), skip creating it to avoid "table already exists" errors.
+        if (Schema::hasTable('media_assets')) {
+            return;
+        }
+
         Schema::create('media_assets', function (Blueprint $table) {
             $table->id();
             $table->string('collection', 100);

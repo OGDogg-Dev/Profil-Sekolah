@@ -114,7 +114,8 @@ class DemoContentSeeder extends Seeder
         ]);
 
         MediaAsset::updateOrCreate(
-            ['collection' => 'home', 'key' => 'hero'],
+            // use existing allowed collection 'hero' to satisfy sqlite CHECK constraint
+            ['collection' => 'hero', 'key' => 'hero'],
             [
                 'disk' => 'public',
                 'path' => 'public-content/home/hero-demo.jpg',
@@ -130,10 +131,8 @@ class DemoContentSeeder extends Seeder
             SiteSetting::updateOrCreate(
                 ['section' => $section, 'key' => $key],
                 [
-                    'type' => is_array($value) ? 'json' : 'text',
-                    'value' => is_array($value)
-                        ? json_encode($value, JSON_UNESCAPED_UNICODE)
-                        : (string) $value,
+                    // store normalized value as JSON in `value_json`
+                    'value_json' => is_array($value) ? $value : (string) $value,
                 ],
             );
         }

@@ -16,7 +16,7 @@ export default function PageForm({ page }: PageFormProps) {
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        router.post(`/admin/pages/${page.id}`, { ...data, _method: 'put' });
+        router.put(`/admin/pages/${page.id}`, data);
     };
 
     return (

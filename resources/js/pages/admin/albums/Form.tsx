@@ -49,7 +49,7 @@ export default function AlbumForm({ album }: AlbumFormProps) {
         e.preventDefault();
         const payload = { ...form };
         if (isEdit && album) {
-            router.post(`/admin/albums/${album.id}`, { ...payload, _method: 'put' });
+            router.put(`/admin/albums/${album.id}`, payload);
         } else {
             router.post('/admin/albums', payload);
         }

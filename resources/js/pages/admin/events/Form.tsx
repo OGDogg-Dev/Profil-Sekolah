@@ -72,7 +72,7 @@ export default function EventForm({ event }: EventFormProps) {
     const [coverPreview, setCoverPreview] = useState<string | null>(event?.cover_url ?? null);
     const [toastMessage, setToastMessage] = useState<string | null>(props.flash?.success ?? null);
 
-    const { data, setData, post, processing, errors, reset } = useForm<FormValues>({
+    const { data, setData, post, put, processing, errors, reset } = useForm<FormValues>({
         title: event?.title ?? '',
         slug: event?.slug ?? '',
         description: event?.description ?? '',
@@ -124,31 +124,37 @@ export default function EventForm({ event }: EventFormProps) {
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const payload: Record<string, unknown> = {
-            ...data,
-            start_at: data.start_at ? new Date(data.start_at).toISOString() : null,
-            end_at: data.end_at ? new Date(data.end_at).toISOString() : null,
-        };
+        // normalize date fields and push them into the form state
+        const tStart = data.start_at ? new Date(data.start_at).toISOString() : null;
+        const tEnd = data.end_at ? new Date(data.end_at).toISOString() : null;
+
+    setData('start_at', tStart ?? '');
+    setData('end_at', tEnd ?? '');
 
         if (!data.cover) {
-            delete payload.cover;
+            setData('cover', null);
         }
 
         if (isEdit && event?.id) {
-            payload._method = 'put';
+            put(`/admin/events/${event.id}`, {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    showToast('Agenda diperbarui.');
+                },
+            });
+
+            return;
         }
 
-        post(isEdit && event?.id ? `/admin/events/${event.id}` : '/admin/events', {
-            data: payload,
+        post('/admin/events', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
-                showToast(isEdit ? 'Agenda diperbarui.' : 'Agenda dibuat.');
+                showToast('Agenda dibuat.');
 
-                if (!isEdit) {
-                    reset();
-                    setCoverPreview(null);
-                }
+                reset();
+                setCoverPreview(null);
             },
         });
     };

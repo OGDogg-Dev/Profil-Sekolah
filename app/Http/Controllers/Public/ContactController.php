@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Public;
 
-use App\Facades\SiteContent;
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
 use Illuminate\Http\RedirectResponse;
@@ -14,12 +13,8 @@ class ContactController extends Controller
 {
     public function form(): Response
     {
-        $settings = [
-            'site_name' => SiteContent::getSetting('general', 'site_name'),
-            'tagline' => SiteContent::getSetting('general', 'tagline'),
-        ];
         return Inertia::render('public/Contact', [
-            'settings' => $settings,
+            'title' => 'Hubungi Kami',
         ]);
     }
 

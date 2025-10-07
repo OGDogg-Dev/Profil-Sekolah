@@ -5,6 +5,7 @@ import {
     Home,
     Image as ImageIcon,
     Layers,
+    Link as LinkIcon,
     LucideIcon,
     Mail,
     MapPin,
@@ -43,13 +44,13 @@ type SharedSettings = {
     site_name?: string | null;
     tagline?: string | null;
     logo_url?: string | null;
+    og_image_url?: string | null;
     phone?: string | null;
     whatsapp?: string | null;
     email?: string | null;
     address?: string | null;
     social?: SocialLink[] | null;
     footer_hours?: FooterHour[] | null;
-    og_image_url?: string | null;
 };
 
 type SharedProps = {
@@ -64,14 +65,14 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-    { id: 'home', label: '', href: '/', icon: Home },
-    { id: 'profil', label: '', href: '/profil', icon: User },
-    { id: 'visi', label: '', href: '/visi-misi', icon: Target },
-    { id: 'program', label: '', href: '/vokasional', icon: Layers },
-    { id: 'berita', label: '', href: '/berita', icon: Newspaper },
-    { id: 'agenda', label: '', href: '/agenda', icon: CalendarDays },
-    { id: 'galeri', label: '', href: '/galeri', icon: ImageIcon },
-    
+    { id: 'home', label: 'Beranda', href: '/', icon: Home },
+    { id: 'profil', label: 'Profil', href: '/profil', icon: User },
+    { id: 'visi', label: 'Visi & Misi', href: '/visi-misi', icon: Target },
+    { id: 'program', label: 'Direktori Program', href: '/vokasional', icon: Layers },
+    { id: 'berita', label: 'Berita', href: '/berita', icon: Newspaper },
+    { id: 'agenda', label: 'Agenda', href: '/agenda', icon: CalendarDays },
+    { id: 'galeri', label: 'Galeri', href: '/galeri', icon: ImageIcon },
+    { id: 'kontak', label: 'Hubungi Kami', href: '/hubungi-kami', icon: MessageCircle },
 ];
 
 export default function PublicLayout({ children, siteName, tagline }: PublicLayoutProps) {
@@ -86,6 +87,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
         'Sekolah Inklusif';
     const resolvedTagline = tagline ?? sharedSettings?.tagline ?? 'Membangun masa depan yang ramah untuk semua.';
     const logoUrl = sharedSettings?.logo_url ?? null;
+    const ogImageUrl = sharedSettings?.og_image_url ?? null;
 
     const phone = sharedSettings?.phone ?? sharedSettings?.whatsapp ?? null;
     const email = sharedSettings?.email ?? null;
@@ -111,7 +113,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                 schedule: schedule || undefined,
             };
         })
-        .filter((item): item is { label: string; schedule: string | undefined } => Boolean(item));
+        .filter((item): item is { label: string; schedule?: string } => Boolean(item));
 
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -138,6 +140,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                             )}
                         </span>
                         <div className="flex flex-col">
+                            <span className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Profil Sekolah</span>
                             <span className="text-lg font-semibold text-slate-900">{resolvedSiteName}</span>
                             <span className="text-xs text-slate-500">{resolvedTagline}</span>
                         </div>
@@ -163,29 +166,13 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                                 );
                             })}
                         </nav>
-                            <div className="flex items-center gap-4">
-                                {phone ? (
-                                    <a href={`tel:${phone.replace(/\s+/g, '')}`} className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-slate-900 shadow-sm hover:bg-white">
-                                        <Phone className="h-4 w-4 text-emerald-600" />
-                                        <span className="hidden md:inline">{phone}</span>
-                                    </a>
-                                ) : null}
-
-                                {email ? (
-                                    <a href={`mailto:${email}`} className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-slate-900 shadow-sm hover:bg-white">
-                                        <Mail className="h-4 w-4 text-emerald-600" />
-                                        <span className="hidden md:inline">{email}</span>
-                                    </a>
-                                ) : null}
-
-                                <Link
-                                    href={whatsappHref}
-                                    className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-3 py-1 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-                                >
-                                    <MessageCircle className="h-4 w-4" aria-hidden />
-                                    <span className="hidden md:inline">{whatsappLabel}</span>
-                                </Link>
-                            </div>
+                        <Link
+                            href={whatsappHref}
+                            className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                        >
+                            <MessageCircle className="h-4 w-4" aria-hidden />
+                            {whatsappLabel}
+                        </Link>
                     </div>
                     <button
                         type="button"
@@ -237,13 +224,35 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                 <div className="bg-slate-800/80">
                     <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
-                            <p className="text-lg font-semibold uppercase tracking-[0.2em]">{resolvedSiteName}</p>
-                            <p className="mt-3 text-sm text-white/80">{resolvedTagline}</p>
+                            <div className="flex items-center gap-3">
+                                <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30">
+                                    {logoUrl ? (
+                                        <img src={logoUrl} alt={`Logo ${resolvedSiteName}`} className="h-full w-full object-contain" />
+                                    ) : (
+                                        <span className="text-xl font-semibold text-emerald-400">{resolvedSiteName.slice(0, 1)}</span>
+                                    )}
+                                </span>
+                                <div>
+                                    <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-200">Profil Sekolah</p>
+                                    <p className="text-lg font-semibold">{resolvedSiteName}</p>
+                                </div>
+                            </div>
+                            <p className="mt-4 text-sm text-white/80">{resolvedTagline}</p>
                             {address ? (
                                 <p className="mt-4 inline-flex items-start gap-2 text-sm text-white/70">
                                     <MapPin className="mt-1 h-4 w-4 flex-shrink-0" />
                                     <span>{address}</span>
                                 </p>
+                            ) : null}
+                            {ogImageUrl ? (
+                                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">OG Image</p>
+                                    <img
+                                        src={ogImageUrl}
+                                        alt={`Gambar OpenGraph ${resolvedSiteName}`}
+                                        className="mt-3 h-28 w-full rounded-xl object-cover"
+                                    />
+                                </div>
                             ) : null}
                         </div>
                         <div>
@@ -276,14 +285,12 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                             <p className="text-lg font-semibold uppercase tracking-[0.2em]">Jam Layanan</p>
                             <div className="mt-3 space-y-2 text-sm text-white/80">
                                 {footerHours.length > 0 ? (
-                                    footerHours.map((slot, index) =>
-                                        slot ? (
-                                            <div key={`${slot.label}-${index}`} className="space-y-1 rounded-md bg-white/5 p-3">
-                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">{slot.label}</p>
-                                                {slot.schedule ? <p>{slot.schedule}</p> : null}
-                                            </div>
-                                        ) : null
-                                    )
+                                    footerHours.map((slot, index) => (
+                                        <div key={`${slot.label}-${index}`} className="space-y-1 rounded-md bg-white/5 p-3">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">{slot.label}</p>
+                                            {slot.schedule ? <p>{slot.schedule}</p> : null}
+                                        </div>
+                                    ))
                                 ) : (
                                     <p>Senin - Jumat, 07.00 - 15.00 WIB</p>
                                 )}
@@ -299,9 +306,12 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                                     {socialLinks.map((link, index) => (
                                         <Link
                                             key={`${link.url}-${index}`}
-                                            href={link.url ?? '#'}
+                                            href={link.url}
                                             className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-900 transition hover:bg-amber-300"
+                                            target="_blank"
+                                            rel="noreferrer"
                                         >
+                                            <LinkIcon className="h-4 w-4" aria-hidden />
                                             {link.label ?? 'Ikuti Kami'}
                                         </Link>
                                     ))}

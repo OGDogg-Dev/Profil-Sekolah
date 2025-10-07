@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Public;
 
-use App\Facades\SiteContent;
 use App\Http\Controllers\Controller;
 use App\Models\Album;
 use App\Models\Event;
@@ -17,11 +16,6 @@ class HomeController extends Controller
 {
     public function index(): Response
     {
-        $settings = [
-            'site_name' => SiteContent::getSetting('general', 'site_name'),
-            'tagline' => SiteContent::getSetting('general', 'tagline'),
-        ];
-
         $profilePage = Page::query()->where('slug', 'profil')->first(['title', 'content']);
         $profileExcerpt = $profilePage ? Str::limit(strip_tags($profilePage->content), 250) : null;
 
@@ -51,7 +45,6 @@ class HomeController extends Controller
             ->get(['id', 'slug', 'title', 'cover_url', 'description']);
 
         return Inertia::render('public/Home', [
-            'settings' => $settings,
             'profile' => [
                 'title' => $profilePage->title ?? 'Profil',
                 'excerpt' => $profileExcerpt,

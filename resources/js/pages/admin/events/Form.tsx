@@ -118,8 +118,8 @@ export default function EventForm({ event }: EventFormProps) {
         setTimeout(() => setToastMessage(null), 3500);
     };
 
-    const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] ?? null;
+    const handleCoverChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
         setData('cover', file);
         setData('removeCover', false);
 
@@ -127,7 +127,7 @@ export default function EventForm({ event }: EventFormProps) {
             URL.revokeObjectURL(coverPreview);
         }
 
-        setCoverPreview(file ? URL.createObjectURL(file) : (event as any)?.cover_url ?? null);
+        setCoverPreview(file ? URL.createObjectURL(file) : event?.cover_url ?? null);
     };
 
     const handleRemoveCover = () => {

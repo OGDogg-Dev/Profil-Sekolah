@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Public;
 
-use App\Facades\SiteContent;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use Illuminate\Http\Request;
@@ -15,7 +14,6 @@ class EventController extends Controller
 {
     public function index(Request $request): Response
     {
-        $settings = $this->generalSettings();
         $filter = $request->string('filter')->toString();
 
         $query = Event::query()->orderBy('start_at');
@@ -29,7 +27,6 @@ class EventController extends Controller
         $events = $query->paginate(12)->withQueryString();
 
         return Inertia::render('agenda/Index', [
-            'settings' => $settings,
             'events' => $events,
             'filters' => [
                 'filter' => $filter ?: 'upcoming',
@@ -39,11 +36,9 @@ class EventController extends Controller
 
     public function show(string $slug): Response
     {
-        $settings = $this->generalSettings();
         $event = Event::query()->where('slug', $slug)->firstOrFail();
 
         return Inertia::render('agenda/Detail', [
-            'settings' => $settings,
             'event' => $event,
         ]);
     }
@@ -84,14 +79,6 @@ class EventController extends Controller
             'Content-Type' => 'text/calendar; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="' . $event->slug . '.ics"',
         ]);
-    }
-
-    private function generalSettings(): array
-    {
-        return [
-            'site_name' => SiteContent::getSetting('general', 'site_name'),
-            'tagline' => SiteContent::getSetting('general', 'tagline'),
-        ];
     }
 
     private function formatIcsDate(Carbon $value): string

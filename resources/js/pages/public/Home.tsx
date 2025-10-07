@@ -15,10 +15,6 @@ import type { EventSummary, PostSummary } from '@/features/content/types';
 import type { VocationalProgram } from '@/features/vocational/types';
 
 interface HomeProps {
-    settings: {
-        site_name?: string;
-        tagline?: string;
-    } | null;
     profile: {
         title: string;
         excerpt?: string | null;
@@ -30,6 +26,9 @@ interface HomeProps {
 }
 
 interface SharedSettings {
+    site_name?: string | null;
+    name?: string | null;
+    tagline?: string | null;
     whatsapp?: string | null;
     phone?: string | null;
     email?: string | null;
@@ -118,12 +117,17 @@ function formatDateRange(event: EventSummary) {
     return `${dateFormatter.format(start)} - ${dateFormatter.format(end)}`;
 }
 
-export default function Home({ settings, profile, programs, posts, events }: HomeProps) {
-    const { props } = usePage<any>();
-    const sharedSettings = (props as any).settings ?? undefined;
+export default function Home({ profile, programs, posts, events }: HomeProps) {
+    const { props } = usePage<SharedProps>();
+    const sharedSettings = props.settings ?? undefined;
 
-    const siteName = settings?.site_name ?? 'Sekolah Inklusif';
-    const tagline = settings?.tagline ?? 'Mewujudkan pendidikan vokasional yang ramah semua peserta didik.';
+    const siteName =
+        sharedSettings?.site_name ??
+        sharedSettings?.name ??
+        'Sekolah Inklusif';
+    const tagline =
+        sharedSettings?.tagline ??
+        'Mewujudkan pendidikan vokasional yang ramah semua peserta didik.';
 
     const contactNumber = sharedSettings?.whatsapp ?? sharedSettings?.phone ?? null;
     const contactEmail = sharedSettings?.email ?? null;
@@ -301,10 +305,10 @@ export default function Home({ settings, profile, programs, posts, events }: Hom
                         )}
                         <div className="space-y-4">
                             {otherPosts.length > 0 ? (
-                                otherPosts.map((post, idx) => (
+                                otherPosts.map((post) => (
                                     <Link
-                                        key={idx}
-                                        href={`/berita/${(post as any).slug}`}
+                                        key={post.id}
+                                        href={`/berita/${post.slug}`}
                                         className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-300 hover:bg-brand-50"
                                     >
                                         {post.cover_url ? (
@@ -361,21 +365,21 @@ export default function Home({ settings, profile, programs, posts, events }: Hom
                         </div>
                         <div className="divide-y divide-slate-200">
                             {upcomingEvents.length > 0 ? (
-                                upcomingEvents.map((event, idx) => (
+                                upcomingEvents.map((event) => (
                                     <Link
-                                        key={idx}
-                                        href={`/agenda/${(event as any).slug}`}
+                                        key={event.id}
+                                        href={`/agenda/${event.slug}`}
                                         className="grid gap-4 px-6 py-5 transition hover:bg-white md:grid-cols-[1fr_0.7fr_0.6fr_0.5fr]"
                                     >
                                         <div className="space-y-2">
                                             <p className="text-sm font-semibold text-slate-900">{event.title}</p>
-                                            {(event as any).summary ? <p className="text-xs text-slate-500">{(event as any).summary}</p> : null}
+                                            {event.summary ? <p className="text-xs text-slate-500">{event.summary}</p> : null}
                                         </div>
                                         <div className="text-sm text-slate-700">{formatDateRange(event)}</div>
                                         <div className="text-sm text-slate-700">{event.location ?? 'Daring / Luring'}</div>
                                         <div>
                                             <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                                                {(event as any).status ?? 'Terjadwal'}
+                                                {event.status ?? 'Terjadwal'}
                                             </span>
                                         </div>
                                     </Link>
@@ -413,16 +417,16 @@ export default function Home({ settings, profile, programs, posts, events }: Hom
                                     <div className="flex flex-col gap-2">
                                         <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-500">
                                             <GraduationCap className="h-4 w-4" />
-                                            {(program as any).category ?? 'Program Unggulan'}
+                                            {program.category ?? 'Program Unggulan'}
                                         </span>
-                                        <h3 className="text-lg font-semibold text-slate-900 group-hover:text-brand-700">{(program as any).name}</h3>
-                                        {(program as any).short_description ? (
-                                            <p className="text-sm text-slate-600 line-clamp-3">{(program as any).short_description}</p>
+                                        <h3 className="text-lg font-semibold text-slate-900 group-hover:text-brand-700">{program.name}</h3>
+                                        {program.short_description ? (
+                                            <p className="text-sm text-slate-600 line-clamp-3">{program.short_description}</p>
                                         ) : null}
                                     </div>
                                     <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-brand-500">
-                                        {(((program as any).focus_tags ?? []) as string[]).slice(0, 3).map((tag, idx) => (
-                                            <span key={`${idx}-${tag}`} className="rounded-full bg-brand-100 px-3 py-1 text-brand-700">
+                                        {(program.focus_tags ?? []).slice(0, 3).map((tag) => (
+                                            <span key={tag} className="rounded-full bg-brand-100 px-3 py-1 text-brand-700">
                                                 {tag}
                                             </span>
                                         ))}

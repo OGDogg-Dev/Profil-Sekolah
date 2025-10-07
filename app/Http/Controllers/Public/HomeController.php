@@ -7,7 +7,6 @@ use App\Models\Album;
 use App\Models\Event;
 use App\Models\Page;
 use App\Models\Post;
-use App\Models\SiteSetting;
 use App\Models\VocationalProgram;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -17,8 +16,6 @@ class HomeController extends Controller
 {
     public function index(): Response
     {
-        $settings = SiteSetting::first();
-
         $profilePage = Page::query()->where('slug', 'profil')->first(['title', 'content']);
         $profileExcerpt = $profilePage ? Str::limit(strip_tags($profilePage->content), 250) : null;
 
@@ -48,7 +45,6 @@ class HomeController extends Controller
             ->get(['id', 'slug', 'title', 'cover_url', 'description']);
 
         return Inertia::render('public/Home', [
-            'settings' => $settings,
             'profile' => [
                 'title' => $profilePage->title ?? 'Profil',
                 'excerpt' => $profileExcerpt,

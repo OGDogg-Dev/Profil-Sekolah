@@ -33,6 +33,7 @@ type SharedSettings = {
     site_name?: string | null;
     name?: string | null;
     tagline?: string | null;
+    logo_url?: string | null;
     address?: string | null;
     phone?: string | null;
     whatsapp?: string | null;
@@ -116,21 +117,23 @@ export default function Contact({ title }: { title: string }) {
                 }
 
                 const label = slot.day?.trim() || slot.label?.trim() || `Hari ${index + 1}`;
-                const time = slot.time?.trim() || slot.value?.trim() || [slot.open, slot.close].filter(Boolean).join(' - ');
+                const schedule = slot.time?.trim() || slot.value?.trim() || [slot.open, slot.close].filter(Boolean).join(' - ');
 
-                if (!label && !time) {
+                if (!label && !schedule) {
                     return null;
                 }
 
-                return `${label}${time ? ` · ${time}` : ''}`;
+                return { label, schedule: schedule || undefined };
             })
-            .filter((value): value is string => Boolean(value));
+            .filter((item) => Boolean(item))
+            .map((item) => item as { label: string; schedule?: string })
+            .filter(Boolean);
 
         if (entries.length > 0) {
             return entries;
         }
 
-        return ['Senin - Jumat · 08.00 - 16.00 WIB'];
+        return [{ label: 'Senin - Jumat', schedule: '08.00 - 16.00 WIB' }];
     }, [sharedSettings?.footer_hours]);
 
     const contactChannels = [
@@ -172,7 +175,7 @@ export default function Contact({ title }: { title: string }) {
         () => [
             {
                 title: 'Jam Layanan',
-                description: footerHours.join(' · '),
+                description: footerHours.map((f) => (f.schedule ? `${f.label} · ${f.schedule}` : f.label)).join(' · '),
             },
             {
                 title: 'Lokasi',
@@ -227,8 +230,16 @@ export default function Contact({ title }: { title: string }) {
                     <Breadcrumbs items={[{ label: 'Hubungi Kami', href: '/hubungi-kami' }]} variant="dark" className="text-slate-200" />
                     <div className="mt-10 grid gap-12 lg:grid-cols-[1.5fr_1fr] lg:items-start">
                         <header className="space-y-6">
-                            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Pusat Layanan</p>
-                            <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">{title}</h1>
+                            <div className="flex items-center gap-4">
+                                {sharedSettings?.logo_url ? (
+                                    <img src={sharedSettings.logo_url} alt={`${siteName} logo`} className="h-14 w-14 rounded-md object-contain" />
+                                ) : null}
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Pusat Layanan</p>
+                                    <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">{title}</h1>
+                                </div>
+                            </div>
+                            
                             <p className="max-w-2xl text-base text-slate-100 sm:text-lg">
                                 Kami menyediakan jalur komunikasi yang responsif bagi orang tua, mitra, media, dan komunitas untuk memastikan kebutuhan peserta didik terpenuhi secara menyeluruh.
                             </p>
@@ -272,6 +283,18 @@ export default function Contact({ title }: { title: string }) {
                                     </li>
                                 ))}
                             </ul>
+                            {socialLinks.length > 0 ? (
+                                <div className="mt-4">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">Ikuti Kami</p>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {socialLinks.map((s, i) => (
+                                            <a key={`${s.url}-${i}`} href={s.url} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-amber-300">
+                                                {s.label}
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
                         </aside>
                     </div>
                     <div className="mt-14 grid gap-6 md:grid-cols-3">

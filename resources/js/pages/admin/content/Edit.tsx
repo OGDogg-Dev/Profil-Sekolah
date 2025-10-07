@@ -346,14 +346,14 @@ export default function ContentEdit() {
                                 className="block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:file:bg-slate-700"
                             />
                             {heroWarning ? <p className="text-xs text-amber-500">{heroWarning}</p> : null}
-                            {errors.hero_media ? <p className="text-xs text-rose-500">{errors.hero_media}</p> : null}
+                            {(errors as any).hero_media ? <p className="text-xs text-rose-500">{(errors as any).hero_media}</p> : null}
                             <input
                                 value={data.heroAlt}
                                 onChange={(event) => setData('heroAlt', event.target.value)}
                                 placeholder="Teks alternatif hero"
                                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                             />
-                            {errors.hero_alt ? <p className="text-xs text-rose-500">{errors.hero_alt}</p> : null}
+                            {(errors as any).hero_alt ? <p className="text-xs text-rose-500">{(errors as any).hero_alt}</p> : null}
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Overlay</label>
                             <input
                                 type="range"

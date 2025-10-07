@@ -10,7 +10,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -62,8 +61,8 @@ class SettingController extends Controller
             'footer_hours' => ['nullable', 'array'],
             'footer_hours.*.day' => ['required_with:footer_hours', 'string', 'max:32'],
             'footer_hours.*.time' => ['required_with:footer_hours', 'string', 'max:64'],
-            'logo' => ['nullable', 'image', Rule::dimensions()->minWidth(300)->minHeight(300), 'mimes:jpg,jpeg,png,webp'],
-            'og_image' => ['nullable', 'image', Rule::dimensions()->minWidth(1200)->minHeight(630), 'mimes:jpg,jpeg,png,webp'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp'],
+            'og_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp'],
             'remove_logo' => ['sometimes', 'boolean'],
             'remove_og_image' => ['sometimes', 'boolean'],
         ]);

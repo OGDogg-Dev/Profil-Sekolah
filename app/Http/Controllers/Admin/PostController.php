@@ -136,7 +136,6 @@ class PostController extends Controller
                 $id ? 'nullable' : 'required',
                 'file',
                 'mimetypes:image/jpeg,image/png,image/webp',
-                Rule::dimensions()->minWidth(1200)->minHeight(675),
             ],
             'cover_alt' => ['nullable', 'string', 'max:255'],
             'remove_cover' => ['sometimes', 'boolean'],

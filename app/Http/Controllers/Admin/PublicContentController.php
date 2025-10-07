@@ -66,7 +66,6 @@ class PublicContentController extends Controller
                 'nullable',
                 'file',
                 'mimetypes:image/jpeg,image/png,image/webp',
-                Rule::dimensions()->minWidth(1600)->minHeight(900),
             ],
             'showHighlights' => ['sometimes', 'boolean'],
             'highlights' => ['nullable', 'array', 'max:4'],

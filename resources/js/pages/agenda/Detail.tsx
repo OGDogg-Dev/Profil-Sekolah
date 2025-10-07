@@ -119,6 +119,7 @@ export default function AgendaDetail({ event }: AgendaDetailProps) {
     const siteName = props?.settings?.site_name ?? 'SMK Negeri 10 Kuningan';
     const startDate = parseDate(event.start_at);
     const endDate = parseDate(event.end_at ?? undefined);
+    const coverUrl = event.cover_url ?? null;
     const cleanedDescription = truncate(stripHtml(event.description) || event.title, 200);
 
     const eventJsonLd = {
@@ -228,6 +229,15 @@ export default function AgendaDetail({ event }: AgendaDetailProps) {
             <section className="bg-slate-50 py-16">
                 <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 lg:grid-cols-[1.6fr_1fr]">
                     <article className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+                        {coverUrl ? (
+                            <figure className="mb-8 overflow-hidden rounded-3xl border border-slate-200/60 bg-slate-100">
+                                <img
+                                    src={coverUrl}
+                                    alt={`Sampul agenda ${event.title}`}
+                                    className="h-64 w-full object-cover object-center sm:h-80"
+                                />
+                            </figure>
+                        ) : null}
                         {event.description ? (
                             <div className="prose max-w-none prose-headings:text-slate-900 prose-p:text-slate-700 prose-ul:list-disc prose-ol:list-decimal prose-li:marker:text-[#1b57d6]">
                                 <div dangerouslySetInnerHTML={{ __html: event.description }} />

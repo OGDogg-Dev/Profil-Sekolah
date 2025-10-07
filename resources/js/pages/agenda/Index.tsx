@@ -1,9 +1,12 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     CalendarCheck,
     CalendarClock,
     CalendarDays,
+    ChevronLeft,
+    ChevronRight,
     MapPin,
     Sparkles,
 } from 'lucide-react';
@@ -12,6 +15,7 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Pagination from '@/components/ui/Pagination';
 import type { EventSummary } from '@/features/content/types';
 import type { Paginated } from '@/features/common/types';
+import { cn } from '@/lib/utils';
 
 type AgendaIndexProps = {
     events: Paginated<EventSummary>;
@@ -25,6 +29,22 @@ type PageProps = {
         site_name?: string;
     };
 };
+
+type CalendarDay = {
+    key: string;
+    date: Date;
+    label: number;
+    isCurrentMonth: boolean;
+    hasEvent: boolean;
+    isToday: boolean;
+    isHighlighted: boolean;
+};
+
+const WEEKDAY_LABELS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+function formatDateKey(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
 
 function parseDate(value?: string | null) {
     if (!value) {
@@ -112,17 +132,83 @@ export default function AgendaIndex({ events, filters }: AgendaIndexProps) {
     const { props } = usePage<PageProps>();
     const siteName = props?.settings?.site_name ?? 'SMK Negeri 10 Kuningan';
     const activeFilter = filters.filter === 'past' ? 'past' : 'upcoming';
-    const listedEvents = events.data ?? [];
-
-    const normalizedEvents = listedEvents.map((event) => ({
-        ...event,
-        startDate: parseDate(event.start_at),
-        endDate: parseDate(event.end_at ?? undefined),
-    }));
+    const listedEvents = useMemo(() => events.data ?? [], [events.data]);
+    const normalizedEvents = useMemo(
+        () =>
+            listedEvents.map((event) => ({
+                ...event,
+                startDate: parseDate(event.start_at),
+                endDate: parseDate(event.end_at ?? undefined),
+            })),
+        [listedEvents],
+    );
 
     const now = new Date();
     const highlightEvent =
         normalizedEvents.find((event) => event.startDate && event.startDate >= now) ?? normalizedEvents[0];
+    const [calendarReference, setCalendarReference] = useState<Date>(() => highlightEvent?.startDate ?? new Date());
+    const highlightStartKey = highlightEvent?.startDate ? formatDateKey(highlightEvent.startDate) : null;
+    const highlightTimestamp = highlightEvent?.startDate?.getTime() ?? null;
+
+    useEffect(() => {
+        if (typeof highlightTimestamp === 'number') {
+            setCalendarReference(new Date(highlightTimestamp));
+        }
+    }, [highlightTimestamp]);
+
+    const eventDateKeys = useMemo(() => {
+        const keys = new Set<string>();
+        normalizedEvents.forEach((event) => {
+            if (event.startDate) {
+                keys.add(formatDateKey(event.startDate));
+            }
+        });
+        return keys;
+    }, [normalizedEvents]);
+
+    const todayKey = useMemo(() => formatDateKey(new Date()), []);
+
+    const calendar = useMemo(() => {
+        const focus = calendarReference instanceof Date ? calendarReference : new Date();
+        const focusMonth = new Date(focus.getFullYear(), focus.getMonth(), 1);
+        const offset = (focusMonth.getDay() + 6) % 7;
+        const gridStart = new Date(focusMonth);
+        gridStart.setDate(focusMonth.getDate() - offset);
+
+        const weeks: CalendarDay[][] = [];
+
+        for (let week = 0; week < 6; week += 1) {
+            const days: CalendarDay[] = [];
+            for (let day = 0; day < 7; day += 1) {
+                const current = new Date(gridStart);
+                current.setDate(gridStart.getDate() + week * 7 + day);
+                const key = formatDateKey(current);
+
+                days.push({
+                    key,
+                    date: current,
+                    label: current.getDate(),
+                    isCurrentMonth: current.getMonth() === focusMonth.getMonth(),
+                    hasEvent: eventDateKeys.has(key),
+                    isToday: key === todayKey,
+                    isHighlighted: Boolean(highlightStartKey && key === highlightStartKey),
+                });
+            }
+            weeks.push(days);
+        }
+
+        const label = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(focusMonth);
+
+        return { label, weeks };
+    }, [calendarReference, eventDateKeys, highlightStartKey, todayKey]);
+
+    const goToPreviousMonth = () => {
+        setCalendarReference((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1));
+    };
+
+    const goToNextMonth = () => {
+        setCalendarReference((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1));
+    };
 
     const highlightDescription = truncate(
         stripHtml(highlightEvent?.description) ||
@@ -221,6 +307,82 @@ export default function AgendaIndex({ events, filters }: AgendaIndexProps) {
                             </div>
                         </header>
                         <aside className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-200">Kalender</p>
+                                        <p className="text-lg font-semibold text-white">{calendar.label}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={goToPreviousMonth}
+                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition hover:border-white hover:bg-white/10"
+                                            aria-label="Kalender bulan sebelumnya"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={goToNextMonth}
+                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition hover:border-white hover:bg-white/10"
+                                            aria-label="Kalender bulan berikutnya"
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-200/80">
+                                    {WEEKDAY_LABELS.map((day) => (
+                                        <span key={day}>{day}</span>
+                                    ))}
+                                </div>
+                                <div className="grid grid-cols-7 gap-2">
+                                    {calendar.weeks.map((week, weekIndex) =>
+                                        week.map((day) => {
+                                            const fullDateLabel = new Intl.DateTimeFormat('id-ID', {
+                                                weekday: 'long',
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric',
+                                            }).format(day.date);
+
+                                            return (
+                                                <div key={`${weekIndex}-${day.key}`} className="flex justify-center">
+                                                    <div
+                                                        className={cn(
+                                                            'relative flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold transition',
+                                                            day.isCurrentMonth ? 'text-white' : 'text-white/40',
+                                                            day.isHighlighted
+                                                                ? 'bg-amber-300 text-slate-900 shadow-lg shadow-amber-500/20'
+                                                                : day.hasEvent
+                                                                ? 'bg-emerald-400/20 text-emerald-100 ring-1 ring-emerald-200/60'
+                                                                : '',
+                                                            day.isToday && !day.isHighlighted ? 'ring-1 ring-white/80' : '',
+                                                        )}
+                                                        aria-label={fullDateLabel}
+                                                    >
+                                                        {day.label}
+                                                        {day.hasEvent ? (
+                                                            <span
+                                                                className={cn(
+                                                                    'absolute -bottom-1 h-1.5 w-1.5 rounded-full',
+                                                                    day.isHighlighted ? 'bg-slate-900' : 'bg-emerald-300',
+                                                                )}
+                                                                aria-hidden
+                                                            />
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }),
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-200/80">
+                                    <span className="mr-2 inline-flex h-2 w-2 rounded-full bg-emerald-300 align-middle" aria-hidden />
+                                    Tanggal dengan agenda aktif.
+                                </p>
+                            </div>
                             <div className="space-y-4">
                                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-200">Sorotan Agenda</p>
                                 {highlightEvent ? (

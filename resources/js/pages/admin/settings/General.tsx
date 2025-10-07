@@ -76,7 +76,7 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
     const [logoPreview, setLogoPreview] = useState<string | null>(settings?.logo_url ?? null);
     const [ogPreview, setOgPreview] = useState<string | null>(settings?.og_image_url ?? null);
 
-    const { data, setData, post, put, processing, errors, reset } = useForm<FormValues>({
+    const { data, setData, post, processing, errors, reset } = useForm<FormValues>({
         site_name: settings?.site_name ?? '',
         tagline: settings?.tagline ?? '',
         address: settings?.address ?? '',
@@ -185,18 +185,16 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
         };
 
         if (data.logo) {
-            setData('logo', data.logo);
-        } else {
-            setData('logo', null);
+            payload.logo = data.logo;
         }
 
         if (data.og_image) {
-            setData('og_image', data.og_image);
-        } else {
-            setData('og_image', null);
+            payload.og_image = data.og_image;
         }
 
-        put('/admin/settings', {
+        payload._method = 'put';
+
+        post('/admin/settings', payload, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {

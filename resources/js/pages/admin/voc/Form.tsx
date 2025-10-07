@@ -95,7 +95,7 @@ export default function VocForm({ item }: VocFormProps) {
     const [coverPreview, setCoverPreview] = useState<string | null>(item?.cover_url ?? null);
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
-    const { data, setData, post, put, processing, errors, reset } = useForm<FormValues>({
+    const { data, setData, post, processing, errors, reset } = useForm<FormValues>({
         slug: item?.slug ?? '',
         title: item?.title ?? '',
         summary: item?.summary ?? '',
@@ -210,52 +210,46 @@ export default function VocForm({ item }: VocFormProps) {
             .slice(0, data.gallery.length)
             .map((entry) => entry.trim());
 
-        // normalize published_at
-        const tPublished = data.published_at ? new Date(data.published_at).toISOString() : '';
-
-        setData('kurikulum', trimmedKurikulum);
-        setData('fasilitas', trimmedFasilitas);
-        setData('gallery_alt', galleryAlt);
-        setData('published_at', tPublished);
+        const payload: Record<string, unknown> = {
+            ...data,
+            kurikulum: trimmedKurikulum,
+            fasilitas: trimmedFasilitas,
+            gallery_alt: galleryAlt,
+            published_at: data.published_at ? new Date(data.published_at).toISOString() : null,
+        };
 
         if (!data.cover) {
-            setData('cover', null);
+            delete payload.cover;
         }
 
         if (!data.gallery.length) {
-            setData('gallery', []);
-            setData('gallery_alt', []);
+            delete payload.gallery;
+            delete payload.gallery_alt;
         }
 
         if (isEdit && item?.id) {
-            put(`/admin/vocational-programs/${item.id}`, {
-                forceFormData: true,
-                preserveScroll: true,
-                onSuccess: () => {
-                    showToast('Program diperbarui.');
-                },
-            });
-
-            return;
+            payload._method = 'put';
         }
 
-        post('/admin/vocational-programs', {
+        post(isEdit && item?.id ? `/admin/vocational-programs/${item.id}` : '/admin/vocational-programs', payload, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
-                showToast('Program dibuat.');
+                showToast(isEdit ? 'Program diperbarui.' : 'Program dibuat.');
 
-                reset();
-                setCoverPreview(null);
-                setGalleryPreviews((prev) => {
-                    prev.forEach((url) => {
-                        if (url.startsWith('blob:')) {
-                            URL.revokeObjectURL(url);
-                        }
+                if (!isEdit) {
+                    reset();
+                    setCoverPreview(null);
+                    setGalleryPreviews((prev) => {
+                        prev.forEach((url) => {
+                            if (url.startsWith('blob:')) {
+                                URL.revokeObjectURL(url);
+                            }
+                        });
+
+                        return [];
                     });
-
-                    return [];
-                });
+                }
             },
         });
     };

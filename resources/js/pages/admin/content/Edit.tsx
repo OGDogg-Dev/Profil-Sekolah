@@ -278,8 +278,7 @@ export default function ContentEdit() {
             payload.hero_media = data.heroFile;
         }
 
-        post(actionUrl, {
-            data: payload,
+        post(actionUrl, payload, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {

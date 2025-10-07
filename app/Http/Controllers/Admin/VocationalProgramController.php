@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\VocationalProgram;
 use App\Models\MediaItem;
+use App\Models\Redirect;
+use App\Models\VocationalProgram;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\Storage;
 
 class VocationalProgramController extends Controller
 {
@@ -47,7 +48,7 @@ class VocationalProgramController extends Controller
             'facilities' => ['nullable', 'array'],
             'mentors' => ['nullable', 'array'],
             'photos' => ['nullable', 'array'],
-            'photos.*' => ['image', 'max:2048'],
+            'photos.*' => ['file', 'max:5120', 'mimetypes:image/jpeg,image/png,image/webp,video/mp4'],
         ]);
 
         $program = VocationalProgram::create($data);
@@ -99,8 +100,10 @@ class VocationalProgramController extends Controller
             'facilities' => ['nullable', 'array'],
             'mentors' => ['nullable', 'array'],
             'photos' => ['nullable', 'array'],
-            'photos.*' => ['image', 'max:2048'],
+            'photos.*' => ['file', 'max:5120', 'mimetypes:image/jpeg,image/png,image/webp,video/mp4'],
         ]);
+
+        $originalSlug = $vocational_program->slug;
 
         if ($request->hasFile('photos')) {
             \Log::info('Processing files in update', ['count' => count($request->file('photos'))]);
@@ -118,6 +121,8 @@ class VocationalProgramController extends Controller
         }
 
         $vocational_program->update($data);
+
+        $this->recordRedirect($originalSlug, $vocational_program->slug, '/vokasional/');
 
         return back()->with('success', 'Program diperbarui');
     }
@@ -146,6 +151,22 @@ class VocationalProgramController extends Controller
         $media->delete();
 
         return back()->with('success', 'Media berhasil dihapus');
+    }
+
+    private function recordRedirect(?string $from, ?string $to, string $prefix): void
+    {
+        if (! $from || ! $to || $from === $to) {
+            return;
+        }
+
+        Redirect::updateOrCreate(
+            ['from' => $prefix . ltrim($from, '/')],
+            [
+                'to' => $prefix . ltrim($to, '/'),
+                'type' => 301,
+                'created_at' => now(),
+            ]
+        );
     }
 }
 

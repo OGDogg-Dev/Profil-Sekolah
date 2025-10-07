@@ -8,15 +8,22 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        if (! Schema::hasTable('new_site_settings')) {
-            Schema::create('new_site_settings', function (Blueprint $table) {
-                $table->id();
-                $table->string('section');
-                $table->string('key');
-                $table->json('value_json');
-                $table->unique(['section', 'key']);
-            });
+        if (Schema::hasTable('site_settings') && Schema::hasColumn('site_settings', 'section')) {
+            return;
         }
+
+        $temporaryTable = 'new_site_settings';
+
+        Schema::dropIfExists($temporaryTable);
+
+        Schema::create($temporaryTable, function (Blueprint $table) {
+            $table->id();
+            $table->string('section');
+            $table->string('key');
+            $table->json('value_json');
+            $table->timestamps();
+            $table->unique(['section', 'key']);
+        });
 
         if (Schema::hasTable('site_settings')) {
             $existing = DB::table('site_settings')->first();
@@ -26,26 +33,37 @@ return new class extends Migration {
                     ->except(['id', 'created_at', 'updated_at'])
                     ->filter(fn ($value) => $value !== null);
 
-                foreach ($payload as $key => $value) {
-                    DB::table('new_site_settings')->updateOrInsert(
-                        ['section' => 'general', 'key' => $key],
-                        ['value_json' => json_encode($value)]
-                    );
+                $now = now();
+
+                $records = $payload->map(function ($value, $key) use ($now) {
+                    return [
+                        'section' => 'general',
+                        'key' => $key,
+                        'value_json' => json_encode($value),
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                })->values();
+
+                if ($records->isNotEmpty()) {
+                    DB::table($temporaryTable)->insert($records->all());
                 }
             }
 
-            Schema::dropIfExists('site_settings');
+            Schema::drop('site_settings');
         }
 
-        if (Schema::hasTable('new_site_settings')) {
-            Schema::rename('new_site_settings', 'site_settings');
-        }
+        Schema::rename($temporaryTable, 'site_settings');
     }
 
     public function down(): void
     {
-        if (! Schema::hasTable('site_settings')) {
+        if (! Schema::hasTable('site_settings') || ! Schema::hasColumn('site_settings', 'section')) {
             return;
+        }
+
+        if (Schema::hasTable('normalized_site_settings')) {
+            Schema::drop('normalized_site_settings');
         }
 
         Schema::rename('site_settings', 'normalized_site_settings');

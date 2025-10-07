@@ -14,7 +14,7 @@ it('returns default when site setting is missing', function () {
 
     $connection->shouldReceive('table')
         ->once()
-        ->with('new_site_settings')
+        ->with('site_settings')
         ->andReturn($builder);
 
     $builder->shouldReceive('select')

@@ -46,6 +46,8 @@ class SiteContent
                 if (json_last_error() === JSON_ERROR_NONE) {
                     return $decoded;
                 }
+
+                return $value;
             }
 
             if (is_array($value)) {
@@ -60,6 +62,13 @@ class SiteContent
         });
     }
 
+    public function forgetSetting(string $section, string $key): void
+    {
+        $cacheKey = sprintf(self::CACHE_KEY_FORMAT, $section, $key);
+
+        $this->cache->forget($cacheKey);
+    }
+
     /**
      * Fetch media assets for a collection optionally scoped by key.
      */
@@ -71,7 +80,7 @@ class SiteContent
             $asset = $query->where('key', $key)->first();
 
             if ($collection === 'og' && ! $asset) {
-                return $this->resolveOgFallback();
+                return $this->ogFallback();
             }
 
             return $asset;
@@ -80,7 +89,7 @@ class SiteContent
         $assets = $query->orderBy('id')->get();
 
         if ($collection === 'og' && $assets->isEmpty()) {
-            $fallback = $this->resolveOgFallback();
+            $fallback = $this->ogFallback();
 
             if ($fallback) {
                 return collect([$fallback]);
@@ -108,12 +117,12 @@ class SiteContent
 
     private function builder(): Builder
     {
-        return $this->connection->table('new_site_settings')->select('value_json');
+        return $this->connection->table('site_settings')->select('value_json');
     }
 
-    private function resolveOgFallback(): ?MediaAsset
+    public function ogFallback(): ?MediaAsset
     {
-        $fallback = $this->getSetting('global', 'ogImage');
+        $fallback = $this->getSetting('general', 'ogImage');
 
         return $this->normaliseMediaFallback($fallback);
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\HandlesMediaUpload;
 use App\Models\Event;
+use App\Models\MediaAsset;
 use App\Models\Redirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,7 +55,7 @@ class EventController extends Controller
             $event = Event::create($payload);
 
             if ($coverFile) {
-                $this->replaceSingleton($coverFile, 'cover', (string) $event->id, $coverAlt);
+                $this->replaceSingleton($coverFile, 'cover', (string) $event->id, $this->normaliseAlt($coverAlt));
             }
         });
 
@@ -74,6 +75,9 @@ class EventController extends Controller
         $coverFile = $request->file('cover');
         $coverAlt = $data['cover_alt'] ?? null;
         $originalSlug = $event->slug;
+        $altProvided = $request->has('cover_alt');
+
+        $coverAlt = $this->normaliseAlt($coverAlt);
 
         $payload = Arr::only($data, [
             'title',
@@ -84,11 +88,23 @@ class EventController extends Controller
             'location',
         ]);
 
-        DB::transaction(function () use ($event, $payload, $coverFile, $coverAlt) {
+        DB::transaction(function () use ($request, $event, $payload, $coverFile, $coverAlt, $altProvided) {
             $event->update($payload);
+
+            $existingAsset = MediaAsset::query()
+                ->where('collection', 'cover')
+                ->where('key', (string) $event->id)
+                ->first();
+
+            if ($request->boolean('remove_cover') && $existingAsset) {
+                $this->deleteMedia($existingAsset);
+                $event->update(['cover_url' => null]);
+            }
 
             if ($coverFile) {
                 $this->replaceSingleton($coverFile, 'cover', (string) $event->id, $coverAlt);
+            } elseif ($existingAsset && $altProvided) {
+                $existingAsset->update(['alt' => $coverAlt]);
             }
         });
 
@@ -121,11 +137,18 @@ class EventController extends Controller
                 $id ? 'nullable' : 'required',
                 'file',
                 'mimetypes:image/jpeg,image/png,image/webp',
-                'max:3072',
                 Rule::dimensions()->minWidth(1200)->minHeight(675),
             ],
             'cover_alt' => ['nullable', 'string', 'max:255'],
+            'remove_cover' => ['sometimes', 'boolean'],
         ]);
+    }
+
+    private function normaliseAlt(?string $alt): ?string
+    {
+        $alt = $alt !== null ? trim($alt) : null;
+
+        return $alt === '' ? null : $alt;
     }
 
     private function recordRedirect(?string $from, ?string $to, string $prefix): void

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\HandlesMediaUpload;
+use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\Redirect;
 use Illuminate\Http\RedirectResponse;
@@ -56,7 +57,7 @@ class PostController extends Controller
             $post = Post::create($data);
 
             if ($coverFile) {
-                $asset = $this->replaceSingleton($coverFile, 'cover', (string) $post->id, $coverAlt);
+                $asset = $this->replaceSingleton($coverFile, 'cover', (string) $post->id, $this->normaliseAlt($coverAlt));
                 $post->update(['cover_url' => $asset->path]);
             }
         });
@@ -79,17 +80,32 @@ class PostController extends Controller
         $coverFile = $request->file('cover');
         $coverAlt = $data['cover_alt'] ?? null;
         $originalSlug = $post->slug;
+        $altProvided = $request->has('cover_alt');
 
         unset($data['cover'], $data['cover_alt']);
 
         $data['status'] = $this->normaliseStatus($data['status'] ?? null);
 
-        DB::transaction(function () use ($post, $data, $coverFile, $coverAlt) {
+        $coverAlt = $this->normaliseAlt($coverAlt);
+
+        DB::transaction(function () use ($request, $post, $data, $coverFile, $coverAlt, $altProvided) {
             $post->update($data);
+
+            $existingAsset = MediaAsset::query()
+                ->where('collection', 'cover')
+                ->where('key', (string) $post->id)
+                ->first();
+
+            if ($request->boolean('remove_cover') && $existingAsset) {
+                $this->deleteMedia($existingAsset);
+                $post->update(['cover_url' => null]);
+            }
 
             if ($coverFile) {
                 $asset = $this->replaceSingleton($coverFile, 'cover', (string) $post->id, $coverAlt);
                 $post->update(['cover_url' => $asset->path]);
+            } elseif ($existingAsset && $altProvided) {
+                $existingAsset->update(['alt' => $coverAlt]);
             }
         });
 
@@ -120,11 +136,18 @@ class PostController extends Controller
                 $id ? 'nullable' : 'required',
                 'file',
                 'mimetypes:image/jpeg,image/png,image/webp',
-                'max:3072',
                 Rule::dimensions()->minWidth(1200)->minHeight(675),
             ],
             'cover_alt' => ['nullable', 'string', 'max:255'],
+            'remove_cover' => ['sometimes', 'boolean'],
         ]);
+    }
+
+    private function normaliseAlt(?string $alt): ?string
+    {
+        $alt = $alt !== null ? trim($alt) : null;
+
+        return $alt === '' ? null : $alt;
     }
 
     private function recordRedirect(?string $from, ?string $to, string $prefix): void

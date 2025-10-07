@@ -63,6 +63,7 @@ type FormValues = {
     heroFile: File | null;
     heroAlt: string;
     hero: HeroSettings;
+    removeHero: boolean;
     highlights: Highlight[];
     showHighlights: boolean;
     newsMode: 'auto' | 'manual';
@@ -134,6 +135,7 @@ export default function ContentEdit() {
         section,
         heroFile: null,
         heroAlt: settings.hero?.alt ?? '',
+        removeHero: false,
         hero: {
             title: settings.hero?.title ?? DEFAULT_HERO.title,
             subtitle: settings.hero?.subtitle ?? DEFAULT_HERO.subtitle,
@@ -183,6 +185,12 @@ export default function ContentEdit() {
         [heroPreview],
     );
 
+    useEffect(() => {
+        if (!data.heroFile && !data.removeHero) {
+            setHeroPreview(props.hero_url ?? null);
+        }
+    }, [props.hero_url, data.heroFile, data.removeHero]);
+
     const showToast = (message: string) => {
         setToastMessage(message);
         setTimeout(() => setToastMessage(null), 3500);
@@ -191,6 +199,7 @@ export default function ContentEdit() {
     const handleHeroChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setData('heroFile', file);
+        setData('removeHero', false);
 
         if (!file) {
             if (heroPreview && heroPreview.startsWith('blob:')) {
@@ -213,6 +222,18 @@ export default function ContentEdit() {
             }
         };
         image.src = previewUrl;
+    };
+
+    const handleRemoveHero = () => {
+        if (heroPreview && heroPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(heroPreview);
+        }
+
+        setHeroPreview(null);
+        setHeroWarning(null);
+        setData('heroFile', null);
+        setData('heroAlt', '');
+        setData('removeHero', true);
     };
 
     const updateHighlight = (index: number, key: keyof Highlight, value: string) => {
@@ -277,6 +298,9 @@ export default function ContentEdit() {
 
             if (current.heroFile) {
                 payload.hero_media = current.heroFile;
+                payload.hero_remove = 0;
+            } else if (current.removeHero) {
+                payload.hero_remove = 1;
             }
 
             return payload;
@@ -287,6 +311,9 @@ export default function ContentEdit() {
             preserveScroll: true,
             onSuccess: () => {
                 showToast('Konten berhasil disimpan.');
+                if (data.removeHero) {
+                    setData('removeHero', false);
+                }
                 if (!data.heroFile) {
                     return;
                 }
@@ -347,6 +374,16 @@ export default function ContentEdit() {
                                         <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Belum ada gambar hero.</div>
                                     )}
                                 </div>
+                                {(heroPreview || props.hero_url) && !data.removeHero ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveHero}
+                                        className="mt-3 inline-flex items-center justify-center rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/30"
+                                        disabled={processing}
+                                    >
+                                        Hapus Gambar Hero
+                                    </button>
+                                ) : null}
                             </div>
                             <div className="space-y-3">
                                 <input

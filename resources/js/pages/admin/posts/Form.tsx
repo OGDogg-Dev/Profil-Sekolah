@@ -43,6 +43,7 @@ type FormValues = {
     published_at: string;
     cover: File | null;
     cover_alt: string;
+    removeCover: boolean;
     seo_title: string;
     seo_description: string;
     seo_keywords: string;
@@ -85,6 +86,7 @@ export default function PostForm({ post }: PostFormProps) {
         published_at: post?.published_at ? post.published_at.slice(0, 16) : '',
         cover: null,
         cover_alt: post?.cover_alt ?? '',
+        removeCover: false,
         seo_title: post?.seo_title ?? '',
         seo_description: post?.seo_description ?? '',
         seo_keywords: post?.seo_keywords ?? '',
@@ -133,12 +135,24 @@ export default function PostForm({ post }: PostFormProps) {
         const file = event.target.files?.[0] ?? null;
 
         setData('cover', file);
+        setData('removeCover', false);
 
         if (coverPreview && coverPreview.startsWith('blob:')) {
             URL.revokeObjectURL(coverPreview);
         }
 
         setCoverPreview(file ? URL.createObjectURL(file) : post?.cover_url ?? null);
+    };
+
+    const handleRemoveCover = () => {
+        if (coverPreview && coverPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(coverPreview);
+        }
+
+        setCoverPreview(null);
+        setData('cover', null);
+        setData('cover_alt', '');
+        setData('removeCover', true);
     };
 
     const showToast = (message: string) => {
@@ -165,6 +179,12 @@ export default function PostForm({ post }: PostFormProps) {
                 payload.cover_alt = '';
             }
 
+            delete payload.removeCover;
+
+            if (current.removeCover) {
+                payload.remove_cover = 1;
+            }
+
             if (!current.seo_keywords) {
                 payload.seo_keywords = '';
             }
@@ -181,6 +201,9 @@ export default function PostForm({ post }: PostFormProps) {
             preserveScroll: true,
             onSuccess: () => {
                 showToast(isEdit ? 'Berita diperbarui.' : 'Berita dibuat.');
+                if (data.removeCover) {
+                    setData('removeCover', false);
+                }
 
                 if (!isEdit) {
                     reset();
@@ -317,6 +340,16 @@ export default function PostForm({ post }: PostFormProps) {
                                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                             />
                             {errors.cover_alt ? <p className="text-xs text-rose-500">{errors.cover_alt}</p> : null}
+                            {(coverPreview || post?.cover_url) && !data.removeCover ? (
+                                <button
+                                    type="button"
+                                    onClick={handleRemoveCover}
+                                    className="inline-flex items-center justify-center rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                                    disabled={processing}
+                                >
+                                    Hapus Cover
+                                </button>
+                            ) : null}
                         </div>
                         <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
                             {coverPreview ? (

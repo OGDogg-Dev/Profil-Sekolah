@@ -43,7 +43,7 @@ class VocationalProgramController extends Controller
             $program = VocationalProgram::create($this->programPayload($request, $data));
 
             if ($coverFile instanceof UploadedFile) {
-                $this->storeCoverMedia($program, $coverFile, $data['cover_alt'] ?? null);
+                $this->storeCoverMedia($program, $coverFile, $this->normaliseText($data['cover_alt'] ?? null));
             }
 
             if ($galleryFiles !== []) {
@@ -74,12 +74,20 @@ class VocationalProgramController extends Controller
         $galleryFiles = $this->normaliseUploadedFiles($request->file('gallery'));
         $galleryAlt = $this->normaliseAltValues($request->input('gallery_alt', []));
         $originalSlug = $vocational_program->slug;
+        $coverAlt = $this->normaliseText($data['cover_alt'] ?? null);
+        $altProvided = $request->has('cover_alt');
 
-        DB::transaction(function () use ($request, $vocational_program, $data, $coverFile, $galleryFiles, $galleryAlt) {
+        DB::transaction(function () use ($request, $vocational_program, $data, $coverFile, $galleryFiles, $galleryAlt, $coverAlt, $altProvided) {
             $vocational_program->update($this->programPayload($request, $data));
 
+            if ($request->boolean('remove_cover')) {
+                $this->deleteExistingCover($vocational_program);
+            }
+
             if ($coverFile instanceof UploadedFile) {
-                $this->storeCoverMedia($vocational_program, $coverFile, $data['cover_alt'] ?? null);
+                $this->storeCoverMedia($vocational_program, $coverFile, $coverAlt);
+            } elseif (! $request->boolean('remove_cover') && $altProvided) {
+                $this->updateCoverAlt($vocational_program, $coverAlt);
             }
 
             if ($galleryFiles !== []) {
@@ -157,14 +165,14 @@ class VocationalProgramController extends Controller
                 $ignoreId ? 'nullable' : 'required',
                 'file',
                 'mimetypes:image/jpeg,image/png,image/webp',
-                'max:3072',
                 Rule::dimensions()->minWidth(1200)->minHeight(675),
             ],
             'cover_alt' => ['nullable', 'string', 'max:255'],
             'gallery' => ['nullable', 'array'],
-            'gallery.*' => ['file', 'max:5120', 'mimetypes:image/jpeg,image/png,image/webp,video/mp4'],
+            'gallery.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp,video/mp4'],
             'gallery_alt' => ['nullable', 'array'],
             'gallery_alt.*' => ['nullable', 'string', 'max:255'],
+            'remove_cover' => ['sometimes', 'boolean'],
         ]);
     }
 
@@ -221,8 +229,18 @@ class VocationalProgramController extends Controller
         $program->media()->create([
             'type' => 'cover',
             'url' => $path,
-            'alt' => $alt ? trim($alt) : $program->title,
+            'alt' => $alt ?: $program->title,
         ]);
+    }
+
+    private function updateCoverAlt(VocationalProgram $program, ?string $alt): void
+    {
+        $program->media()
+            ->where('type', 'cover')
+            ->get()
+            ->each(function (MediaItem $media) use ($alt): void {
+                $media->update(['alt' => $alt]);
+            });
     }
 
     private function deleteExistingCover(VocationalProgram $program): void
@@ -299,6 +317,13 @@ class VocationalProgramController extends Controller
         }, $values), fn (?string $value) => $value !== null && $value !== ''));
 
         return $normalised === [] ? null : $normalised;
+    }
+
+    private function normaliseText(?string $value): ?string
+    {
+        $value = $value !== null ? trim($value) : null;
+
+        return $value === '' ? null : $value;
     }
 }
 

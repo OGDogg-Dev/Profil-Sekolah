@@ -62,8 +62,10 @@ class SettingController extends Controller
             'footer_hours' => ['nullable', 'array'],
             'footer_hours.*.day' => ['required_with:footer_hours', 'string', 'max:32'],
             'footer_hours.*.time' => ['required_with:footer_hours', 'string', 'max:64'],
-            'logo' => ['nullable', 'image', Rule::dimensions()->minWidth(300)->minHeight(300), 'max:3072', 'mimes:jpg,jpeg,png,webp'],
-            'og_image' => ['nullable', 'image', Rule::dimensions()->minWidth(1200)->minHeight(630), 'max:3072', 'mimes:jpg,jpeg,png,webp'],
+            'logo' => ['nullable', 'image', Rule::dimensions()->minWidth(300)->minHeight(300), 'mimes:jpg,jpeg,png,webp'],
+            'og_image' => ['nullable', 'image', Rule::dimensions()->minWidth(1200)->minHeight(630), 'mimes:jpg,jpeg,png,webp'],
+            'remove_logo' => ['sometimes', 'boolean'],
+            'remove_og_image' => ['sometimes', 'boolean'],
         ]);
 
         DB::transaction(function () use ($data, $request) {
@@ -90,6 +92,9 @@ class SettingController extends Controller
                     'id' => $logo->id,
                     'path' => $logo->path,
                 ];
+            } elseif ($request->boolean('remove_logo')) {
+                $this->deleteByKey('logo', 'global');
+                $payload['logo'] = null;
             } else {
                 $existingLogo = SiteContent::getMedia('logo', 'global');
 
@@ -113,6 +118,9 @@ class SettingController extends Controller
                     'id' => $ogAsset->id,
                     'path' => $ogAsset->path,
                 ];
+            } elseif ($request->boolean('remove_og_image')) {
+                $this->deleteByKey('og', 'global');
+                $payload['ogImage'] = null;
             }
 
             $this->persistSettings($payload);

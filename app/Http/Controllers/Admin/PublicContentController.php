@@ -61,11 +61,11 @@ class PublicContentController extends Controller
             'hero.cta2_url' => ['nullable', 'string', 'max:255'],
             'hero.overlay' => ['nullable', 'integer', 'between:0,100'],
             'hero_alt' => ['nullable', 'string', 'max:255'],
+            'hero_remove' => ['sometimes', 'boolean'],
             'hero_media' => [
                 'nullable',
                 'file',
                 'mimetypes:image/jpeg,image/png,image/webp',
-                'max:3072',
                 Rule::dimensions()->minWidth(1600)->minHeight(900),
             ],
             'showHighlights' => ['sometimes', 'boolean'],
@@ -99,6 +99,12 @@ class PublicContentController extends Controller
         $existingHero = SiteContent::getMedia('hero', $section);
         $heroAsset = $existingHero instanceof MediaAsset ? $existingHero : null;
 
+        if ($request->boolean('hero_remove') && $heroAsset instanceof MediaAsset) {
+            $this->deleteMedia($heroAsset);
+            $heroAsset = null;
+            $heroAlt = '';
+        }
+
         if ($request->hasFile('hero_media')) {
             $heroAsset = $this->replaceSingleton(
                 $request->file('hero_media'),
@@ -106,6 +112,7 @@ class PublicContentController extends Controller
                 $section,
                 $heroAlt !== '' ? $heroAlt : null
             );
+            $heroAlt = $heroAlt !== '' ? $heroAlt : ($heroAsset->alt ?? '');
         } elseif ($heroAsset instanceof MediaAsset) {
             $heroAsset->update(['alt' => $heroAlt !== '' ? $heroAlt : null]);
         }

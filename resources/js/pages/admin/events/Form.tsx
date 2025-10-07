@@ -39,6 +39,7 @@ type FormValues = {
     status: EventStatus;
     cover: File | null;
     cover_alt: string;
+    removeCover: boolean;
 };
 
 const STATUS_OPTIONS: Array<{ value: EventStatus; label: string }> = [
@@ -85,6 +86,7 @@ export default function EventForm({ event }: EventFormProps) {
         status: event?.status ?? 'draft',
         cover: null,
         cover_alt: event?.cover_alt ?? '',
+        removeCover: false,
     });
 
     useEffect(() => {
@@ -105,6 +107,12 @@ export default function EventForm({ event }: EventFormProps) {
         };
     }, [coverPreview]);
 
+    useEffect(() => {
+        if (!data.cover && !data.removeCover) {
+            setCoverPreview(event?.cover_url ?? null);
+        }
+    }, [event?.cover_url, data.cover, data.removeCover]);
+
     const showToast = (message: string) => {
         setToastMessage(message);
         setTimeout(() => setToastMessage(null), 3500);
@@ -113,12 +121,24 @@ export default function EventForm({ event }: EventFormProps) {
     const handleCoverChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setData('cover', file);
+        setData('removeCover', false);
 
         if (coverPreview && coverPreview.startsWith('blob:')) {
             URL.revokeObjectURL(coverPreview);
         }
 
         setCoverPreview(file ? URL.createObjectURL(file) : event?.cover_url ?? null);
+    };
+
+    const handleRemoveCover = () => {
+        if (coverPreview && coverPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(coverPreview);
+        }
+
+        setCoverPreview(null);
+        setData('cover', null);
+        setData('cover_alt', '');
+        setData('removeCover', true);
     };
 
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -135,6 +155,12 @@ export default function EventForm({ event }: EventFormProps) {
                 delete payload.cover;
             }
 
+            delete payload.removeCover;
+
+            if (current.removeCover) {
+                payload.remove_cover = 1;
+            }
+
             if (isEdit && event?.id) {
                 payload._method = 'put';
             }
@@ -147,6 +173,9 @@ export default function EventForm({ event }: EventFormProps) {
             preserveScroll: true,
             onSuccess: () => {
                 showToast(isEdit ? 'Agenda diperbarui.' : 'Agenda dibuat.');
+                if (data.removeCover) {
+                    setData('removeCover', false);
+                }
 
                 if (!isEdit) {
                     reset();
@@ -327,6 +356,16 @@ export default function EventForm({ event }: EventFormProps) {
                                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                             />
                             {errors.cover_alt ? <p className="text-xs text-rose-500">{errors.cover_alt}</p> : null}
+                            {(coverPreview || event?.cover_url) && !data.removeCover ? (
+                                <button
+                                    type="button"
+                                    onClick={handleRemoveCover}
+                                    className="inline-flex items-center justify-center rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                                    disabled={processing}
+                                >
+                                    Hapus Cover
+                                </button>
+                            ) : null}
                         </div>
                         <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
                             {coverPreview ? (

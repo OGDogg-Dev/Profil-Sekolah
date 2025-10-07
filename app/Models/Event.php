@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Event extends Model
@@ -29,6 +30,19 @@ class Event extends Model
                 $event->slug = Str::slug($event->title);
             }
         });
+    }
+
+    public function getCoverUrlAttribute($value): ?string
+    {
+        if (! $value) {
+            return $value;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://', '/'])) {
+            return $value;
+        }
+
+        return Storage::disk('public')->url($value);
     }
 
     public function scopeUpcoming(Builder $query): Builder

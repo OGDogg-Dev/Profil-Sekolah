@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useForm, usePage } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '@/pages/admin/_layout/AdminLayout';
 
 type ProgramStatus = 'draft' | 'scheduled' | 'published' | 'archived';
@@ -59,6 +59,7 @@ type FormValues = {
     cover_alt: string;
     gallery: File[];
     gallery_alt: string[];
+    removeCover: boolean;
 };
 
 const STATUS_OPTIONS: Array<{ value: ProgramStatus; label: string }> = [
@@ -115,6 +116,7 @@ export default function VocForm({ item }: VocFormProps) {
         cover_alt: item?.cover_alt ?? '',
         gallery: [],
         gallery_alt: [],
+        removeCover: false,
     });
 
     const existingGallery = useMemo(() => item?.media ?? [], [item?.media]);
@@ -136,6 +138,12 @@ export default function VocForm({ item }: VocFormProps) {
             }
         };
     }, [coverPreview]);
+
+    useEffect(() => {
+        if (!data.cover && !data.removeCover) {
+            setCoverPreview(item?.cover_url ?? null);
+        }
+    }, [item?.cover_url, data.cover, data.removeCover]);
 
     useEffect(() => {
         return () => {
@@ -170,12 +178,24 @@ export default function VocForm({ item }: VocFormProps) {
     const handleCoverChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setData('cover', file);
+        setData('removeCover', false);
 
         if (coverPreview && coverPreview.startsWith('blob:')) {
             URL.revokeObjectURL(coverPreview);
         }
 
         setCoverPreview(file ? URL.createObjectURL(file) : item?.cover_url ?? null);
+    };
+
+    const handleRemoveCover = () => {
+        if (coverPreview && coverPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(coverPreview);
+        }
+
+        setCoverPreview(null);
+        setData('cover', null);
+        setData('cover_alt', '');
+        setData('removeCover', true);
     };
 
     const handleGalleryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,6 +221,23 @@ export default function VocForm({ item }: VocFormProps) {
         setData('gallery_alt', next);
     };
 
+    const deleteExistingMedia = (mediaId: number) => {
+        if (!item?.id) {
+            return;
+        }
+
+        if (typeof window !== 'undefined' && !window.confirm('Hapus media ini?')) {
+            return;
+        }
+
+        router.delete(`/admin/vocational-programs/${item.id}/media/${mediaId}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showToast('Media dihapus.');
+            },
+        });
+    };
+
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -223,6 +260,12 @@ export default function VocForm({ item }: VocFormProps) {
                 delete payload.cover;
             }
 
+            delete payload.removeCover;
+
+            if (current.removeCover) {
+                payload.remove_cover = 1;
+            }
+
             if (!current.gallery.length) {
                 delete payload.gallery;
                 delete payload.gallery_alt;
@@ -240,6 +283,10 @@ export default function VocForm({ item }: VocFormProps) {
             preserveScroll: true,
             onSuccess: () => {
                 showToast(isEdit ? 'Program diperbarui.' : 'Program dibuat.');
+
+                if (data.removeCover) {
+                    setData('removeCover', false);
+                }
 
                 if (!isEdit) {
                     reset();
@@ -436,6 +483,16 @@ export default function VocForm({ item }: VocFormProps) {
                                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                             />
                             {errors.cover_alt ? <p className="text-xs text-rose-500">{errors.cover_alt}</p> : null}
+                            {(coverPreview || item?.cover_url) && !data.removeCover ? (
+                                <button
+                                    type="button"
+                                    onClick={handleRemoveCover}
+                                    className="inline-flex items-center justify-center rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                                    disabled={processing}
+                                >
+                                    Hapus Cover
+                                </button>
+                            ) : null}
                             <div className="pt-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="gallery">
                                     Galeri (gambar/video)
@@ -499,7 +556,16 @@ export default function VocForm({ item }: VocFormProps) {
                                     <div className="grid gap-3 md:grid-cols-2">
                                         {existingGallery.map((media) => (
                                             <figure key={media.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-800">
-                                                <img src={media.url} alt={media.alt ?? ''} className="h-32 w-full object-cover" />
+                                                <div className="relative h-32 w-full">
+                                                    <img src={media.url} alt={media.alt ?? ''} className="h-full w-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => deleteExistingMedia(media.id)}
+                                                        className="absolute right-2 top-2 rounded-full bg-rose-600 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700"
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                </div>
                                                 <figcaption className="px-3 py-2 text-xs text-slate-500 dark:text-slate-300">{media.alt ?? 'Tanpa deskripsi'}</figcaption>
                                             </figure>
                                         ))}

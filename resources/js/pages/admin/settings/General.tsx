@@ -40,6 +40,8 @@ type FormValues = {
     footer_hours: FooterHour[];
     logo: File | null;
     og_image: File | null;
+    removeLogo: boolean;
+    removeOg: boolean;
 };
 
 const ensureEntries = <T extends { [key: string]: string }>(items?: T[] | null, fallback: T = { label: '', url: '' } as T): T[] => {
@@ -87,6 +89,8 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
         footer_hours: ensureHours(settings?.footer_hours ?? null),
         logo: null,
         og_image: null,
+        removeLogo: false,
+        removeOg: false,
     });
 
     useEffect(() => {
@@ -109,6 +113,18 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
             }
         };
     }, [logoPreview, ogPreview]);
+
+    useEffect(() => {
+        if (!data.logo && !data.removeLogo) {
+            setLogoPreview(settings?.logo_url ?? null);
+        }
+    }, [settings?.logo_url, data.logo, data.removeLogo]);
+
+    useEffect(() => {
+        if (!data.og_image && !data.removeOg) {
+            setOgPreview(settings?.og_image_url ?? null);
+        }
+    }, [settings?.og_image_url, data.og_image, data.removeOg]);
 
     const showToast = (message: string) => {
         setToastMessage(message);
@@ -148,6 +164,7 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
     const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setData('logo', file);
+        setData('removeLogo', false);
 
         if (logoPreview && logoPreview.startsWith('blob:')) {
             URL.revokeObjectURL(logoPreview);
@@ -156,15 +173,36 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
         setLogoPreview(file ? URL.createObjectURL(file) : settings?.logo_url ?? null);
     };
 
+    const handleRemoveLogo = () => {
+        if (logoPreview && logoPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(logoPreview);
+        }
+
+        setLogoPreview(null);
+        setData('logo', null);
+        setData('removeLogo', true);
+    };
+
     const handleOgChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setData('og_image', file);
+        setData('removeOg', false);
 
         if (ogPreview && ogPreview.startsWith('blob:')) {
             URL.revokeObjectURL(ogPreview);
         }
 
         setOgPreview(file ? URL.createObjectURL(file) : settings?.og_image_url ?? null);
+    };
+
+    const handleRemoveOg = () => {
+        if (ogPreview && ogPreview.startsWith('blob:')) {
+            URL.revokeObjectURL(ogPreview);
+        }
+
+        setOgPreview(null);
+        setData('og_image', null);
+        setData('removeOg', true);
     };
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -188,10 +226,14 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
 
             if (current.logo) {
                 payload.logo = current.logo;
+            } else if (current.removeLogo) {
+                payload.remove_logo = 1;
             }
 
             if (current.og_image) {
                 payload.og_image = current.og_image;
+            } else if (current.removeOg) {
+                payload.remove_og_image = 1;
             }
 
             return payload;
@@ -203,6 +245,8 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
             onSuccess: () => {
                 showToast('Pengaturan tersimpan.');
                 reset('logo', 'og_image');
+                setData('removeLogo', false);
+                setData('removeOg', false);
             },
             onFinish: () => {
                 transform((formData) => formData);
@@ -321,6 +365,16 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
                                         <span className="text-sm text-slate-500 dark:text-slate-400">Belum ada logo.</span>
                                     )}
                                 </div>
+                                {logoPreview && !data.removeLogo ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveLogo}
+                                        className="mt-3 inline-flex items-center justify-center rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                                        disabled={processing}
+                                    >
+                                        Hapus Logo
+                                    </button>
+                                ) : null}
                             </div>
                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900">
                                 <p className="text-sm font-semibold text-slate-700 dark:text-slate-100">Pratinjau OG Default</p>
@@ -331,6 +385,16 @@ export default function SettingsGeneral({ settings }: SettingsProps) {
                                         <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Belum ada gambar OG.</div>
                                     )}
                                 </div>
+                                {ogPreview && !data.removeOg ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveOg}
+                                        className="mt-3 inline-flex items-center justify-center rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                                        disabled={processing}
+                                    >
+                                        Hapus Gambar OG
+                                    </button>
+                                ) : null}
                             </div>
                         </div>
                     </div>

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class MediaItem extends Model
 {
@@ -15,4 +17,17 @@ class MediaItem extends Model
         'caption',
         'track_vtt',
     ];
+
+    public function getUrlAttribute($value): ?string
+    {
+        if (! $value) {
+            return $value;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://', '/'])) {
+            return $value;
+        }
+
+        return Storage::disk('public')->url($value);
+    }
 }

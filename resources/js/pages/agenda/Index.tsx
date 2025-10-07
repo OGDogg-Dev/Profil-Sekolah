@@ -7,7 +7,7 @@ import {
     MapPin,
     Sparkles,
 } from 'lucide-react';
-import PublicLayout from '@/layouts/PublicLayout';
+import PublicLayout from '@/layouts/public/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Pagination from '@/components/ui/Pagination';
 import type { EventSummary } from '@/features/content/types';

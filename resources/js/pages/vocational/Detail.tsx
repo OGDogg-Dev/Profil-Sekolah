@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import PublicLayout from '@/layouts/PublicLayout';
+import PublicLayout from '@/layouts/public/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { Clock, Users, Calendar, Award, Wrench, UserCheck } from 'lucide-react';
 import type { VocationalProgram } from '@/features/vocational/types';

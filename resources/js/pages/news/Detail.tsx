@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
-import PublicLayout from '@/layouts/PublicLayout';
+import PublicLayout from '@/layouts/public/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import type { PostSummary } from '@/features/content/types';
 

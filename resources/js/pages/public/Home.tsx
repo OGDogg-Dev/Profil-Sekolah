@@ -10,7 +10,7 @@ import {
     Sparkles,
     Users,
 } from 'lucide-react';
-import PublicLayout from '@/layouts/PublicLayout';
+import PublicLayout from '@/layouts/public/PublicLayout';
 import type { EventSummary, PostSummary } from '@/features/content/types';
 import type { VocationalProgram } from '@/features/vocational/types';
 

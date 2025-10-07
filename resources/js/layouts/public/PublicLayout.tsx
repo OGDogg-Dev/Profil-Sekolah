@@ -35,10 +35,12 @@ type FooterHour = {
     open?: string | null;
     close?: string | null;
     value?: string | null;
+    time?: string | null;
 };
 
 type SharedSettings = {
     name?: string | null;
+    site_name?: string | null;
     tagline?: string | null;
     logo_url?: string | null;
     phone?: string | null;
@@ -47,6 +49,7 @@ type SharedSettings = {
     address?: string | null;
     social?: SocialLink[] | null;
     footer_hours?: FooterHour[] | null;
+    og_image_url?: string | null;
 };
 
 type SharedProps = {
@@ -76,7 +79,11 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
     const currentPath = useMemo(() => url.split('?')[0], [url]);
     const sharedSettings = props.settings ?? undefined;
 
-    const resolvedSiteName = siteName ?? sharedSettings?.name ?? 'Sekolah Inklusif';
+    const resolvedSiteName =
+        siteName ??
+        sharedSettings?.site_name ??
+        sharedSettings?.name ??
+        'Sekolah Inklusif';
     const resolvedTagline = tagline ?? sharedSettings?.tagline ?? 'Membangun masa depan yang ramah untuk semua.';
     const logoUrl = sharedSettings?.logo_url ?? null;
 
@@ -86,7 +93,25 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
     const socialLinks = (sharedSettings?.social ?? []).filter((link): link is SocialLink & { url: string } =>
         Boolean(link?.url)
     );
-    const footerHours = (sharedSettings?.footer_hours ?? []).filter(Boolean);
+    const footerHours = (sharedSettings?.footer_hours ?? [])
+        .map((slot, index) => {
+            if (! slot) {
+                return null;
+            }
+
+            const label = slot.day ?? slot.label ?? `Hari ${index + 1}`;
+            const schedule = slot.time ?? slot.value ?? [slot.open, slot.close].filter(Boolean).join(' - ');
+
+            if (! label && ! schedule) {
+                return null;
+            }
+
+            return {
+                label,
+                schedule: schedule || undefined,
+            };
+        })
+        .filter((item): item is { label: string; schedule?: string } => Boolean(item));
 
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -113,6 +138,7 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                             )}
                         </span>
                         <div className="flex flex-col">
+                            <span className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Profil Sekolah</span>
                             <span className="text-lg font-semibold text-slate-900">{resolvedSiteName}</span>
                             <span className="text-xs text-slate-500">{resolvedTagline}</span>
                         </div>
@@ -235,16 +261,12 @@ export default function PublicLayout({ children, siteName, tagline }: PublicLayo
                             <p className="text-lg font-semibold uppercase tracking-[0.2em]">Jam Layanan</p>
                             <div className="mt-3 space-y-2 text-sm text-white/80">
                                 {footerHours.length > 0 ? (
-                                    footerHours.map((slot, index) => {
-                                        const label = slot?.day ?? slot?.label ?? `Hari ${index + 1}`;
-                                        const schedule = slot?.value ?? [slot?.open, slot?.close].filter(Boolean).join(' - ');
-                                        return (
-                                            <div key={`${label}-${index}`} className="space-y-1 rounded-md bg-white/5 p-3">
-                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">{label}</p>
-                                                {schedule ? <p>{schedule}</p> : null}
-                                            </div>
-                                        );
-                                    })
+                                    footerHours.map((slot, index) => (
+                                        <div key={`${slot.label}-${index}`} className="space-y-1 rounded-md bg-white/5 p-3">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">{slot.label}</p>
+                                            {slot.schedule ? <p>{slot.schedule}</p> : null}
+                                        </div>
+                                    ))
                                 ) : (
                                     <p>Senin - Jumat, 07.00 - 15.00 WIB</p>
                                 )}

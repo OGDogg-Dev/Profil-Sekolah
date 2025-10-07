@@ -127,6 +127,11 @@ class SiteContent
         return $this->normaliseMediaFallback($fallback);
     }
 
+    public function mediaFromValue(mixed $value): ?MediaAsset
+    {
+        return $this->normaliseMediaFallback($value);
+    }
+
     private function normaliseMediaFallback(mixed $fallback): ?MediaAsset
     {
         if (! $fallback) {

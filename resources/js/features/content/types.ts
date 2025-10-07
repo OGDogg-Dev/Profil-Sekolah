@@ -14,6 +14,7 @@ export type EventSummary = {
     start_at: string;
     end_at?: string | null;
     location?: string | null;
+    cover_url?: string | null;
 };
 
 export type AlbumMediaSummary = {

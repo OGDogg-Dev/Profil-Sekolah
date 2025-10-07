@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Facades\SiteContent;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
-use App\Models\SiteSetting;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,7 +13,7 @@ class PageController extends Controller
 {
     public function showProfile(): Response
     {
-        $settings = SiteSetting::first();
+        $settings = $this->generalSettings();
         $page = Page::where('slug', 'profil')->first();
 
         return Inertia::render('public/Profile', [
@@ -24,7 +24,7 @@ class PageController extends Controller
 
     public function showVisionMission(): Response
     {
-        $settings = SiteSetting::first();
+        $settings = $this->generalSettings();
         $page = Page::where('slug', 'visi-misi')->first();
 
         $vision = null;
@@ -52,5 +52,13 @@ class PageController extends Controller
             'vision' => $vision,
             'missions' => $missions,
         ]);
+    }
+
+    private function generalSettings(): array
+    {
+        return [
+            'site_name' => SiteContent::getSetting('general', 'site_name'),
+            'tagline' => SiteContent::getSetting('general', 'tagline'),
+        ];
     }
 }

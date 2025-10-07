@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
-import AppShell from '@/layouts/AppShell';
+import PublicLayout from '@/layouts/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import type { PostSummary } from '@/features/content/types';
 
@@ -77,7 +77,7 @@ export default function NewsDetail({ post, related }: NewsDetailProps) {
         : [];
 
     return (
-        <AppShell siteName={siteName}>
+        <PublicLayout siteName={siteName}>
             <Head title={`${post.title} - ${siteName}`}>
                 <meta name="description" content={description} />
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
@@ -158,6 +158,6 @@ export default function NewsDetail({ post, related }: NewsDetailProps) {
                     ) : null}
                 </div>
             </section>
-        </AppShell>
+        </PublicLayout>
     );
 }

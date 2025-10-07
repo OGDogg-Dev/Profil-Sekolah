@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import AppShell from '@/layouts/AppShell';
+import PublicLayout from '@/layouts/PublicLayout';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { Clock, Users, Calendar, Award, Wrench, UserCheck } from 'lucide-react';
 import type { VocationalProgram } from '@/features/vocational/types';
@@ -33,7 +33,7 @@ export default function VocationalDetail({ program }: VocationalDetailProps) {
         }));
 
   return (
-    <AppShell siteName={siteName}>
+    <PublicLayout siteName={siteName}>
       <Head title={`${program.title} - ${siteName}`} />
 
       <section className="bg-gray-50 py-12">
@@ -157,6 +157,6 @@ export default function VocationalDetail({ program }: VocationalDetailProps) {
           </div>
         </div>
       </section>
-    </AppShell>
+    </PublicLayout>
   );
 }

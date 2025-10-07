@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\VocationalProgram;
 use App\Models\MediaItem;
+use App\Models\Redirect;
+use App\Models\VocationalProgram;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\Storage;
 
 class VocationalProgramController extends Controller
 {
@@ -29,44 +34,28 @@ class VocationalProgramController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        \Log::info('Store method called', [
-            'has_files' => $request->hasFile('photos'),
-            'files_count' => $request->hasFile('photos') ? count($request->file('photos')) : 0,
-            'all_data' => $request->all(),
-        ]);
+        $data = $this->validateData($request);
+        $coverFile = $request->file('cover');
+        $galleryFiles = $this->normaliseUploadedFiles($request->file('gallery'));
+        $galleryAlt = $this->normaliseAltValues($request->input('gallery_alt', []));
 
-        $data = $request->validate([
-            'slug' => ['required', 'alpha_dash', 'unique:vocational_programs,slug'],
-            'title' => ['required', 'string', 'max:255'],
-            'icon' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable'],
-            'audience' => ['nullable', 'string', 'max:255'],
-            'duration' => ['nullable', 'string', 'max:255'],
-            'schedule' => ['nullable', 'string', 'max:255'],
-            'outcomes' => ['nullable', 'array'],
-            'facilities' => ['nullable', 'array'],
-            'mentors' => ['nullable', 'array'],
-            'photos' => ['nullable', 'array'],
-            'photos.*' => ['image', 'max:2048'],
-        ]);
+        DB::transaction(function () use ($request, $data, $coverFile, $galleryFiles, $galleryAlt) {
+            $program = VocationalProgram::create($this->programPayload($request, $data));
 
-        $program = VocationalProgram::create($data);
-
-        if ($request->hasFile('photos')) {
-            \Log::info('Processing files', ['count' => count($request->file('photos'))]);
-            foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('vocational-photos', 'public');
-                \Log::info('File stored', ['path' => $path]);
-                MediaItem::create([
-                    'vocational_program_id' => $program->id,
-                    'type' => 'image',
-                    'url' => $path,
-                    'alt' => $data['title'],
-                ]);
+            if ($coverFile instanceof UploadedFile) {
+                $this->storeCoverMedia($program, $coverFile, $this->normaliseText($data['cover_alt'] ?? null));
             }
-        }
 
-        return redirect()->route('admin.vocational-programs.index');
+            if ($galleryFiles !== []) {
+                $this->storeGalleryMedia($program, $galleryFiles, $galleryAlt);
+            }
+
+            $this->refreshPhotosColumn($program);
+        });
+
+        return redirect()
+            ->route('admin.vocational-programs.index')
+            ->with('success', 'Program berhasil dibuat');
     }
 
     public function edit(VocationalProgram $vocational_program): Response
@@ -80,52 +69,46 @@ class VocationalProgramController extends Controller
 
     public function update(Request $request, VocationalProgram $vocational_program): RedirectResponse
     {
-        \Log::info('Update method called', [
-            'program_id' => $vocational_program->id,
-            'has_files' => $request->hasFile('photos'),
-            'files_count' => $request->hasFile('photos') ? count($request->file('photos')) : 0,
-            'all_data' => $request->all(),
-        ]);
+        $data = $this->validateData($request, $vocational_program->id);
+        $coverFile = $request->file('cover');
+        $galleryFiles = $this->normaliseUploadedFiles($request->file('gallery'));
+        $galleryAlt = $this->normaliseAltValues($request->input('gallery_alt', []));
+        $originalSlug = $vocational_program->slug;
+        $coverAlt = $this->normaliseText($data['cover_alt'] ?? null);
+        $altProvided = $request->has('cover_alt');
 
-        $data = $request->validate([
-            'slug' => ['required', 'alpha_dash', 'unique:vocational_programs,slug,' . $vocational_program->id],
-            'title' => ['required', 'string', 'max:255'],
-            'icon' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable'],
-            'audience' => ['nullable', 'string', 'max:255'],
-            'duration' => ['nullable', 'string', 'max:255'],
-            'schedule' => ['nullable', 'string', 'max:255'],
-            'outcomes' => ['nullable', 'array'],
-            'facilities' => ['nullable', 'array'],
-            'mentors' => ['nullable', 'array'],
-            'photos' => ['nullable', 'array'],
-            'photos.*' => ['image', 'max:2048'],
-        ]);
+        DB::transaction(function () use ($request, $vocational_program, $data, $coverFile, $galleryFiles, $galleryAlt, $coverAlt, $altProvided) {
+            $vocational_program->update($this->programPayload($request, $data));
 
-        if ($request->hasFile('photos')) {
-            \Log::info('Processing files in update', ['count' => count($request->file('photos'))]);
-            // Create new media items (don't delete existing ones, user can delete individually)
-            foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('vocational-photos', 'public');
-                \Log::info('File stored in update', ['path' => $path]);
-                MediaItem::create([
-                    'vocational_program_id' => $vocational_program->id,
-                    'type' => 'image',
-                    'url' => $path,
-                    'alt' => $data['title'],
-                ]);
+            if ($request->boolean('remove_cover')) {
+                $this->deleteExistingCover($vocational_program);
             }
-        }
 
-        $vocational_program->update($data);
+            if ($coverFile instanceof UploadedFile) {
+                $this->storeCoverMedia($vocational_program, $coverFile, $coverAlt);
+            } elseif (! $request->boolean('remove_cover') && $altProvided) {
+                $this->updateCoverAlt($vocational_program, $coverAlt);
+            }
+
+            if ($galleryFiles !== []) {
+                $this->storeGalleryMedia($vocational_program, $galleryFiles, $galleryAlt);
+            }
+
+            $this->refreshPhotosColumn($vocational_program);
+        });
+
+        $this->recordRedirect($originalSlug, $vocational_program->slug, '/vokasional/');
 
         return back()->with('success', 'Program diperbarui');
     }
 
     public function destroy(VocationalProgram $vocational_program): RedirectResponse
     {
-        // Delete associated media items
-        $vocational_program->media()->delete();
+        $vocational_program->load('media');
+
+        $vocational_program->media->each(function (MediaItem $media): void {
+            $this->deleteMediaRecord($media);
+        });
 
         $vocational_program->delete();
 
@@ -139,13 +122,208 @@ class VocationalProgramController extends Controller
             abort(403);
         }
 
-        // Delete the file from storage
-        Storage::disk('public')->delete($media->url);
+        $this->deleteMediaRecord($media);
 
-        // Delete the media record
-        $media->delete();
+        $this->refreshPhotosColumn($vocational_program->refresh());
 
         return back()->with('success', 'Media berhasil dihapus');
+    }
+
+    private function recordRedirect(?string $from, ?string $to, string $prefix): void
+    {
+        if (! $from || ! $to || $from === $to) {
+            return;
+        }
+
+        Redirect::updateOrCreate(
+            ['from' => $prefix . ltrim($from, '/')],
+            [
+                'to' => $prefix . ltrim($to, '/'),
+                'type' => 301,
+                'created_at' => now(),
+            ]
+        );
+    }
+
+    private function validateData(Request $request, ?int $ignoreId = null): array
+    {
+        return $request->validate([
+            'slug' => ['required', 'alpha_dash', Rule::unique('vocational_programs', 'slug')->ignore($ignoreId)],
+            'title' => ['required', 'string', 'max:255'],
+            'summary' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'audience' => ['nullable', 'string', 'max:255'],
+            'duration' => ['nullable', 'string', 'max:255'],
+            'schedule' => ['nullable', 'string', 'max:255'],
+            'kurikulum' => ['nullable', 'array'],
+            'kurikulum.*' => ['nullable', 'string', 'max:255'],
+            'fasilitas' => ['nullable', 'array'],
+            'fasilitas.*' => ['nullable', 'string', 'max:255'],
+            'mentors' => ['nullable', 'array'],
+            'mentors.*' => ['nullable', 'string', 'max:255'],
+            'cover' => [
+                $ignoreId ? 'nullable' : 'required',
+                'file',
+                'mimetypes:image/jpeg,image/png,image/webp',
+                Rule::dimensions()->minWidth(1200)->minHeight(675),
+            ],
+            'cover_alt' => ['nullable', 'string', 'max:255'],
+            'gallery' => ['nullable', 'array'],
+            'gallery.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp,video/mp4'],
+            'gallery_alt' => ['nullable', 'array'],
+            'gallery_alt.*' => ['nullable', 'string', 'max:255'],
+            'remove_cover' => ['sometimes', 'boolean'],
+        ]);
+    }
+
+    private function programPayload(Request $request, array $data): array
+    {
+        return [
+            'slug' => $data['slug'],
+            'title' => $data['title'],
+            'description' => $request->input('description'),
+            'audience' => $request->input('audience'),
+            'duration' => $request->input('duration'),
+            'schedule' => $request->input('schedule'),
+            'outcomes' => $this->normaliseStringArray($request->input('kurikulum')),
+            'facilities' => $this->normaliseStringArray($request->input('fasilitas')),
+            'mentors' => $this->normaliseStringArray($request->input('mentors')),
+        ];
+    }
+
+    /**
+     * @param  UploadedFile[]  $files
+     */
+    private function storeGalleryMedia(VocationalProgram $program, array $files, array $altValues): void
+    {
+        foreach (array_values($files) as $index => $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            $mime = (string) $file->getMimeType();
+            $alt = $altValues[$index] ?? null;
+
+            if (str_starts_with($mime, 'image/') && ($alt === null || $alt === '')) {
+                throw ValidationException::withMessages([
+                    "gallery_alt.$index" => 'Alt teks wajib diisi untuk gambar galeri.',
+                ]);
+            }
+
+            $path = $file->store('vocational-programs/gallery', 'public');
+
+            $program->media()->create([
+                'type' => str_starts_with($mime, 'video/') ? 'video' : 'image',
+                'url' => $path,
+                'alt' => $alt ?: $program->title,
+            ]);
+        }
+    }
+
+    private function storeCoverMedia(VocationalProgram $program, UploadedFile $file, ?string $alt): void
+    {
+        $this->deleteExistingCover($program);
+
+        $path = $file->store('vocational-programs/cover', 'public');
+
+        $program->media()->create([
+            'type' => 'cover',
+            'url' => $path,
+            'alt' => $alt ?: $program->title,
+        ]);
+    }
+
+    private function updateCoverAlt(VocationalProgram $program, ?string $alt): void
+    {
+        $program->media()
+            ->where('type', 'cover')
+            ->get()
+            ->each(function (MediaItem $media) use ($alt): void {
+                $media->update(['alt' => $alt]);
+            });
+    }
+
+    private function deleteExistingCover(VocationalProgram $program): void
+    {
+        $program->media()
+            ->where('type', 'cover')
+            ->get()
+            ->each(function (MediaItem $media): void {
+                $this->deleteMediaRecord($media);
+            });
+    }
+
+    private function deleteMediaRecord(MediaItem $media): void
+    {
+        if ($media->url && Storage::disk('public')->exists($media->url)) {
+            Storage::disk('public')->delete($media->url);
+        }
+
+        $media->delete();
+    }
+
+    private function refreshPhotosColumn(VocationalProgram $program): void
+    {
+        $program->load('media');
+
+        $paths = $program->media
+            ->pluck('url')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $program->forceFill([
+            'photos' => $paths === [] ? null : $paths,
+        ])->save();
+    }
+
+    /**
+     * @param  UploadedFile|array<int, UploadedFile>|null  $files
+     * @return UploadedFile[]
+     */
+    private function normaliseUploadedFiles($files): array
+    {
+        if ($files === null) {
+            return [];
+        }
+
+        if ($files instanceof UploadedFile) {
+            return [$files];
+        }
+
+        return array_values(array_filter($files, fn ($file) => $file instanceof UploadedFile));
+    }
+
+    private function normaliseAltValues(mixed $values): array
+    {
+        if (! is_array($values)) {
+            return [];
+        }
+
+        return array_values(array_map(function ($value) {
+            return is_string($value) ? trim($value) : null;
+        }, $values));
+    }
+
+    private function normaliseStringArray(mixed $values): ?array
+    {
+        if (! is_array($values)) {
+            return null;
+        }
+
+        $normalised = array_values(array_filter(array_map(function ($value) {
+            return is_string($value) ? trim($value) : null;
+        }, $values), fn (?string $value) => $value !== null && $value !== ''));
+
+        return $normalised === [] ? null : $normalised;
+    }
+
+    private function normaliseText(?string $value): ?string
+    {
+        $value = $value !== null ? trim($value) : null;
+
+        return $value === '' ? null : $value;
     }
 }
 
